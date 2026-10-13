@@ -1,5 +1,10 @@
 // Carteiro da Chamada — o ponto de encontro entre o Mestrão e o celular.
 //
+// A marca abaixo restringe a permissão do Google a ESTA planilha. Sem ela, a
+// autorização pede "todas as suas planilhas" — o carteiro só usa esta, então
+// não há por que conceder mais (13/10/2026).
+/** @OnlyCurrentDoc */
+//
 // Mora dentro da Planilha Google do professor (Extensões → Apps Script) e é
 // publicado como App da Web. Os dois lados mandam um POST com JSON e a chave:
 //
