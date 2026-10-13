@@ -449,6 +449,10 @@ function atualizarGrade() {
   buscando ??= pedir("grade")
     .then((resposta) => {
       if (!resposta.ok) throw new Error(resposta.erro);
+      // Planilha sem turma, quando o aparelho já tinha turmas, é o Mestrão no meio
+      // de uma gravação (13/10/2026): a cópia do aparelho continua, e a próxima
+      // busca traz a nova. Trocar por vazio apagaria a tela no meio da chamada.
+      if (!resposta.turmas?.length && grade?.turmas?.length) return;
       grade = resposta;
       conferidaEm = Date.now();
       guardar(CHAVES.grade, grade);
