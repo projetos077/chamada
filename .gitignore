@@ -1,3 +1,5 @@
 # A pasta é publicável: nada de planilha com nome de aluno aqui.
 *.xlsx
 .DS_Store
+# Desenhos de escolha do layout — ficam no Mac.
+modelos/

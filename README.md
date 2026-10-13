@@ -1,98 +1,71 @@
-# Chamada Mestre
+# Chamada — o celular do Mestrão
 
-PWA para realizar chamadas no iPhone usando a planilha XLSX da extensão Mestre.
+O Mestrão gera a planilha do período; este app faz a chamada no iPhone e grava
+só a frequência. Os dois se encontram numa **Planilha Google** do professor,
+por meio de um script que mora nela — o *carteiro* (`carteiro/Codigo.gs`).
 
-O aplicativo publicado não contém a extensão Mestre nem planilhas com dados de
-alunos. A planilha é selecionada pelo próprio usuário no aparelho ou no Drive.
+O app publicado não contém dado de aluno: a grade chega do carteiro, na hora.
 
-## Regras preservadas
+## Por que mudou (versão 16, 13/10/2026)
 
-- Compatível com a Planilha SIAEP unificada da Mestre 1.0.57, incluindo a aba
-  `AUDITORIA`, e com o modelo antigo que contém somente a frequência.
-- A aba é localizada pelos nomes `FREQÊNCIA`, `FREQUÊNCIA` ou `FREQUENCIA` e
-  validada pelos cabeçalhos `INT | TURMA | NOME | TOTAL`.
-- A planilha mantém a estrutura e as datas originais.
-- Datas repetidas continuam sendo datas iguais no Excel.
-- **Horários do mesmo dia são escolha do professor** (versão 15), no botão da
-  tela de turmas: *uma chamada* por data, gravada em todos os horários daquele
-  dia (padrão, como nas versões anteriores), ou *uma chamada para cada horário*,
-  gravada só na coluna dele. O arquivo não muda — continua uma coluna por
-  horário.
-- Vazio ou `0` significa presente.
-- `F` significa falta.
-- Os códigos da Mestre 1.0.57 são preservados: `I` impossibilidade, `A`
-  acompanhar responsável, `E` enfermidade, `G` gravidez, `S` insegurança,
-  `T` trabalho, `U` transporte, `O` ensino remoto e `P` suspeita de COVID.
-- Ao salvar, somente as células da aula selecionada são alteradas no XML da
-  aba de frequência. As demais abas da Planilha SIAEP não são regravadas.
-- Antes de enviar, o aplicativo baixa a versão mais recente do Drive e reaplica
-  somente as chamadas pendentes.
-- Se a mesma turma/data mudou no Drive, ou se a marca daquele aluno mudou depois
-  de a chamada ser aberta, o envio é bloqueado para impedir a perda de chamadas.
-- **Matrícula, transferência e desligamento não bloqueiam mais o envio** (versão
-  15): quem continua na turma é lançado, e o aplicativo diz quem saiu e quem
-  entrou. Antes, um único aluno a mais ou a menos recusava a chamada inteira.
-- **Aula validada pelo GAF não abre para chamada** (versão 15). O Mestrão escreve,
-  embaixo de cada turma, uma linha começando por `GAF` com a palavra `VALIDADA` na
-  coluna de cada aula fechada; o aplicativo mostra o cadeado, recusa abrir e nunca
-  grava nessas colunas. Planilha sem essa linha se comporta como antes.
-- O estado `Realizada` é calculado novamente pelo conteúdo da versão atual do
-  arquivo; marcações e rascunhos de outra planilha ou versão não são reutilizados.
-- Ao salvar uma chamada, os presentes são gravados como `0`. A Mestre aceita
-  esse valor como presença e o app consegue reconhecer a data como realizada
-  depois de fechar ou trocar de aparelho.
-- A escrita das células mantém a ordem original das colunas dentro do XML.
-- Cada planilha recebe uma assinatura estrutural baseada em turmas e datas —
-  **sem a lista de alunos**, que muda durante o período. Rascunhos ou chamadas
-  pendentes de uma planilha anterior são bloqueados.
-- O rascunho da chamada é guardado por nome do aluno, não pela posição da linha.
-- A gravação no Drive usa obrigatoriamente o mesmo ID do arquivo que está aberto
-  no PWA; divergências interrompem o envio.
-- Uma única planilha fica definida como a planilha ativa do período. O PWA tenta
-  reconectá-la ao abrir, ao voltar para a tela e quando a internet retorna.
-- Enquanto o token temporário do Google estiver válido, a conferência e a
-  atualização da planilha ativa são automáticas. Quando ele expira, basta tocar
-  em `Conectar`; não é necessário selecionar novamente o arquivo.
-- `Carregar nova planilha do período` abre o seletor somente na troca de período.
-  A nova seleção só substitui a anterior depois de o XLSX ser baixado e validado.
-- A troca de período é bloqueada enquanto existir chamada aguardando envio.
+Até a versão 15 o celular baixava o XLSX inteiro pela API do Drive, encaixava a
+chamada e subia o arquivo de volta, com um login do Google que vencia a cada
+hora; depois o Drive para desktop ainda precisava sincronizar no Mac. Qualquer
+etapa travava. Agora:
 
-## Executar localmente
+- o celular manda **só a chamada** (turma, data, marcas — poucos KB);
+- não há login no celular: o carteiro é protegido por uma **chave**;
+- a chamada entra na **fila do aparelho antes de sair**, e só sai da fila
+  quando o carteiro responde — sem internet, ela vai sozinha depois;
+- a confirmação vem **da planilha**: o carteiro relê as células que gravou
+  antes de responder, e a tela mostra presentes, faltas, justificadas e a hora.
 
-Na pasta do projeto:
+## Regras preservadas (CONTRATOS.md §1, no repositório do Mestrão)
+
+- Vazio ou `0` é presente; `F` falta; `I A E G S T U O P` são os motivos da
+  Mestre 1.0.57. Presente é gravado como `0`, para a aula constar como feita.
+- Data repetida são horários distintos. **Juntos** (padrão): uma chamada por
+  dia, gravada em todos os horários. **Separados**: uma por horário. Em Ajustes.
+- Coluna marcada pelo GAF não aceita chamada e nunca é gravada.
+- Se a marca de um aluno mudou na planilha depois que a chamada foi aberta,
+  nada é gravado, e a tela diz quem.
+- Matrícula e transferência não bloqueiam: quem saiu é dito, quem entrou fica
+  sem marca.
+- O rascunho guarda só os alunos que o professor tocou, por nome.
+- Gerar a planilha de novo no Mestrão **não apaga** a chamada feita aqui: o
+  carteiro só preenche o que está vazio.
+
+## Preparar a planilha (uma vez, no Mac)
+
+1. Crie uma Planilha Google em branco (ex.: *Chamada Mestrão*).
+2. **Extensões → Apps Script**. Apague o que vier, cole o `carteiro/Codigo.gs`
+   inteiro e salve.
+3. **Implantar → Nova implantação → App da Web**:
+   *Executar como*: **Eu**; *Quem pode acessar*: **Qualquer pessoa**.
+   Autorize com a sua conta. Copie o endereço que termina em `/exec`.
+4. Volte à planilha e recarregue. No menu **Mestrão → Código de conexão**, cole
+   o endereço `/exec` quando ele pedir. Aparece o código: `…/exec#…`.
+5. Cole esse código no Mestrão (Configurações) e no celular (primeira tela do
+   app). No iPhone, copiar no Mac e colar no celular funciona pela Área de
+   Transferência Universal.
+
+Quem tiver o código lê a planilha. Para trocar a chave, apague a propriedade
+`CHAVE` em **Apps Script → Configurações do projeto → Propriedades do script**;
+uma nova nasce no próximo uso, e o código precisa ser colado de novo.
+
+Ao mudar o `Codigo.gs`: **Implantar → Gerenciar implantações → editar → Nova
+versão**. Criar implantação nova muda o endereço.
+
+## Testes
 
 ```bash
-python3 -m http.server 8080
+node --test testes/*.test.mjs
 ```
 
-Abra `http://localhost:8080`.
+O carteiro roda inteiro em Node, sobre uma planilha de mentira
+(`testes/planilha-de-mentira.mjs`).
 
-Para instalar no iPhone, publique a pasta em um endereço HTTPS e use
-`Safari > Compartilhar > Adicionar à Tela de Início`.
+## Instalar no iPhone
 
-## Google Drive
-
-1. Crie um projeto no Google Cloud.
-2. Ative a Google Drive API e a Google Picker API.
-3. Crie um OAuth Client ID do tipo aplicativo Web.
-4. Adicione o domínio HTTPS do aplicativo às origens JavaScript autorizadas.
-5. Crie uma chave de API restrita ao domínio do aplicativo e à Google Picker API.
-6. No aplicativo, abra a engrenagem e informe:
-   - OAuth Client ID;
-   - chave de API;
-   - número do projeto Google Cloud.
-7. Toque em `Escolher planilha no Google Drive` e selecione o arquivo XLSX.
-
-O aplicativo usa o escopo limitado `drive.file`. Ele pode abrir e atualizar
-somente a planilha escolhida pelo usuário no seletor oficial do Google. Para
-uso pessoal, a conta deve ser adicionada como usuária de teste na tela de
-consentimento OAuth enquanto o projeto estiver em teste.
-
-A planilha escolhida fica memorizada no aparelho. Uma cópia privada também é
-mantida no armazenamento local do PWA, permitindo abrir e fazer chamadas sem
-selecionar o arquivo novamente. Quando o acesso temporário do Google expirar,
-o aplicativo solicitará uma nova autorização somente ao sincronizar.
-
-Uma chamada feita sem conexão fica armazenada como uma operação pendente
-(turma, data e alunos), e não como um arquivo inteiro pronto para substituir o
-Drive. Na sincronização, ela é aplicada sobre a versão mais recente da planilha.
+Abra o endereço publicado no Safari → Compartilhar → **Adicionar à Tela de
+Início**.
