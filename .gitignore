@@ -1,0 +1,3 @@
+# A pasta é publicável: nada de planilha com nome de aluno aqui.
+*.xlsx
+.DS_Store
