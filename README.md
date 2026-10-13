@@ -22,6 +22,9 @@ etapa travava. Agora:
 
 ## Regras preservadas (CONTRATOS.md §1, no repositório do Mestrão)
 
+- **Toda aula que o Mestrão gerou se preenche** (dito pelo professor em 13/10/2026):
+  em dias seguidos ou pulados, não interessa. A tela mostra o que falta como
+  **"A preencher"**, por turma — não existe aula "atrasada".
 - Vazio ou `0` é presente; `F` falta; `I A E G S T U O P` são os motivos da
   Mestre 1.0.57. Presente é gravado como `0`, para a aula constar como feita.
 - Data repetida são horários distintos. **Juntos** (padrão): uma chamada por

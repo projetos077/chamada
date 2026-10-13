@@ -189,17 +189,19 @@ function aulasDeHoje() {
     .sort((a, b) => emMinutos(a.inicio) - emMinutos(b.inicio));
 }
 
-function aulasAtrasadas() {
-  const hoje = ordenavel(hojeRotulo());
-  return (grade?.turmas ?? [])
-    .flatMap(aulasDa)
-    .filter((aula) => ordenavel(aula.data) < hoje && !aula.feita && !aula.travada)
-    .sort((a, b) => ordenavel(b.data).localeCompare(ordenavel(a.data)) || emMinutos(a.inicio) - emMinutos(b.inicio));
-}
+// **Toda aula que o Mestrão gerou se preenche** — dito por ele em 13/10/2026: em dias
+// seguidos ou pulados, não interessa. O que falta é "a preencher", por turma; não
+// existe aula "atrasada".
+const aPreencher = (aula) => !aula.feita && !aula.travada;
 
+/** A próxima depois de enviar: a do dia, se a enviada era de hoje; senão, a seguinte da mesma turma. */
 function proximaDepois(chave) {
-  const pendente = (aula) => aula.chave !== chave && !aula.feita && !aula.travada && !aula.naFila;
-  return aulasDeHoje().find(pendente) ?? aulasAtrasadas().find(pendente) ?? null;
+  const enviada = acharAula(chave);
+  const pendente = (aula) => aula.chave !== chave && aPreencher(aula) && !aula.naFila;
+  const doDia = aulasDeHoje().find(pendente);
+  if (enviada?.data === hojeRotulo() && doDia) return doDia;
+  return (enviada ? aulasDa(enviada.turma).find(pendente) : null)
+    ?? doDia ?? (grade?.turmas ?? []).flatMap(aulasDa).find(pendente) ?? null;
 }
 
 // ── Desenhar ────────────────────────────────────────────────────────────────
@@ -270,22 +272,19 @@ function desenharHoje() {
     ? `<div class="lista">${hoje.map((aula) => linhaDaAula(aula, { agora: aula === agora })).join("")}</div>`
     : `<div class="lista"><p class="vazio">Nenhuma aula hoje.</p></div>`);
 
-  const atrasadas = aulasAtrasadas().filter((aula) => !aula.recusada);
-  if (atrasadas.length) {
-    partes.push(`<h2 class="titulo-secao tras"><i></i>Ficou para trás</h2>`);
-    partes.push(`<div class="lista">${atrasadas.map((aula) =>
-      linhaDaAula(aula, { comData: true, hora: diaCurto(aula.data) })).join("")}</div>`);
-  }
-
+  // Uma linha por turma com o que falta preencher; tocar abre as aulas dela.
   const turmas = grade?.turmas ?? [];
   if (turmas.length) {
-    partes.push(`<h2 class="titulo-secao todas"><i></i>Todas as turmas</h2>`);
+    const falta = new Map(turmas.map((turma) => [turma.nome, aulasDa(turma).filter(aPreencher).length]));
+    const total = [...falta.values()].reduce((a, b) => a + b, 0);
+    partes.push(`<h2 class="titulo-secao tras"><i></i>A preencher${total ? ` · ${total} aulas` : ""}</h2>`);
     partes.push(`<div class="lista">${turmas.map((turma) => {
-      const aulas = aulasDa(turma);
-      const feitas = aulas.filter((a) => a.feita || a.travada).length;
-      return `<button class="linha" data-turma="${escapar(turma.nome)}">
-        <span class="meio"><strong>${escapar(turma.nome)}</strong><span>${feitas} de ${aulas.length} aulas com chamada</span></span>
-        <span class="seta">›</span></button>`;
+      const n = falta.get(turma.nome);
+      return `<button class="linha ${n ? "" : "enviada"}" data-turma="${escapar(turma.nome)}">
+        <span class="meio"><strong>${escapar(turma.nome)}</strong><span>${n
+          ? `${n} ${n === 1 ? "aula" : "aulas"} a preencher`
+          : "Todas preenchidas"}</span></span>
+        ${n ? `<span class="acao">${n}</span>` : `<span class="feita">✓</span>`}</button>`;
     }).join("")}</div>`);
   } else if (grade) {
     partes.push(`<div class="lista"><p class="vazio">A planilha ainda não tem turmas. Gere a planilha no Mestrão.</p></div>`);
@@ -301,7 +300,8 @@ function abrirTurma(nome) {
   const aulas = aulasDa(turma);
   const hoje = hojeRotulo();
   $("turma-nome").textContent = turma.nome;
-  $("turma-resumo").textContent = `${turma.alunos.length} alunos · ${aulas.length} aulas`;
+  const falta = aulas.filter(aPreencher).length;
+  $("turma-resumo").textContent = `${turma.alunos.length} alunos · ${falta ? `${falta} de ${aulas.length} aulas a preencher` : `${aulas.length} aulas, todas preenchidas`}`;
   // Aqui a turma já está no topo: cada linha diz o dia.
   $("turma-aulas").innerHTML = `<div class="lista" style="margin-top:14px">${aulas.map((aula) =>
     linhaDaAula(aula, {
@@ -309,7 +309,9 @@ function abrirTurma(nome) {
       titulo: `${aula.data.slice(0, 5)}${aula.inicio ? ` · ${aula.inicio}` : ""}`
     }).replace('class="linha', `class="linha${aula.data === hoje ? " hoje" : ""}`)).join("")}</div>`;
   mostrar("turma");
-  document.querySelector("#turma-aulas .hoje")?.scrollIntoView({ block: "center" });
+  // Abre em hoje; sem aula hoje, na primeira que falta preencher.
+  (document.querySelector("#turma-aulas .hoje") ?? document.querySelector("#turma-aulas .linha:not(.enviada):not(.travada)"))
+    ?.scrollIntoView({ block: "center" });
 }
 
 function acharAula(chave) {
