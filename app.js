@@ -11,7 +11,7 @@
 // sair, e só sai da fila quando o carteiro responde. Sem internet, ela fica e
 // vai sozinha depois.
 
-const VERSAO = "16";
+const VERSAO = "17";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -78,6 +78,9 @@ function avisar(texto) {
 function mostrar(tela) {
   telaAtual = tela;
   document.querySelectorAll(".tela").forEach((el) => el.classList.toggle("ativa", el.id === `tela-${tela}`));
+  // A barra de abas some só na chamada (o botão de enviar mora embaixo) e na conexão.
+  $("abas").hidden = !["hoje", "turmas", "turma"].includes(tela);
+  document.querySelectorAll("[data-aba]").forEach((el) => el.classList.toggle("ativa", el.dataset.aba === (tela === "hoje" ? "hoje" : "turmas")));
   window.scrollTo(0, 0);
 }
 
@@ -206,29 +209,54 @@ function proximaDepois(chave) {
 
 // ── Desenhar ────────────────────────────────────────────────────────────────
 
-function linhaDaAula(aula, { agora = false, comData = false, hora, titulo } = {}) {
-  let estado = "";
-  let lado;
+/** [classe da linha, o que vai à direita] */
+function estadoDa(aula, agora = false) {
   const recibo = recibos[aula.chave];
-  if (aula.recusada) {
-    estado = "recusada";
-    lado = `<span class="acao">Abrir</span>`;
-  } else if (aula.naFila) {
-    lado = `<span class="fila">◷ Na fila</span>`;
-  } else if (aula.travada) {
-    estado = "travada";
-    lado = `<span class="fechada">🔒 Fechada</span>`;
-  } else if (aula.feita) {
-    estado = "enviada";
-    lado = `<span class="feita">✓ ${recibo ? `Enviada ${horaDe(recibo.conferidaEm)}` : "Feita"}</span>`;
-  } else {
-    lado = `<span class="acao ${agora ? "agora" : ""}">${agora ? "Fazer agora" : "Fazer"}</span>`;
-  }
+  if (aula.recusada) return ["recusada", `<span class="acao">Abrir</span>`];
+  if (aula.naFila) return ["", `<span class="fila">◷ Na fila</span>`];
+  if (aula.travada) return ["travada", `<span class="fechada">🔒 Validada</span>`];
+  if (aula.feita) return ["enviada", `<span class="feita">✓ ${recibo ? `Enviada ${horaDe(recibo.conferidaEm)}` : "Feita"}</span>`];
+  return ["", `<span class="acao ${agora ? "agora" : ""}">${agora ? "Fazer agora" : "Fazer"}</span>`];
+}
+
+function linhaDaAula(aula, { agora = false, comData = false, hora } = {}) {
+  const [estado, lado] = estadoDa(aula, agora);
   const sub = aula.recusada ? escapar(aula.recusada.erro) : escapar(descricao(aula, comData));
   return `
     <button class="linha ${estado}" data-aula="${escapar(aula.chave)}">
       <span class="hora">${escapar(hora ?? aula.inicio ?? "")}</span>
-      <span class="meio"><strong>${escapar(titulo ?? aula.turma.nome)}</strong><span>${sub}</span></span>
+      <span class="meio"><strong>${escapar(aula.turma.nome)}</strong><span>${sub}</span></span>
+      ${lado}
+    </button>`;
+}
+
+/** Faltas e justificadas da aula, como a chamada abre: a 1ª ausência entre os horários. */
+function resumoDasMarcas(aula) {
+  let faltas = 0;
+  let justificadas = 0;
+  aula.turma.alunos.forEach((_, i) => {
+    const marca = aula.colunas.map((c) => c.marcas[i]).find((m) => m && m !== "0");
+    if (marca === "F") faltas++;
+    else if (marca) justificadas++;
+  });
+  return faltas || justificadas
+    ? [faltas && `${faltas} F`, justificadas && `${justificadas} J`].filter(Boolean).join(" · ")
+    : "todos presentes";
+}
+
+/** Uma data na turma, como na v15: número enquanto falta, ✓ verde quando feita, 🔒 quando validada. */
+function linhaDaData(aula, n) {
+  const hoje = aula.data === hojeRotulo();
+  const [estado, lado] = estadoDa(aula, hoje && aPreencher(aula) && !aula.naFila);
+  const sinal = aula.travada ? "🔒" : aula.feita ? "✓" : n;
+  const horarios = aula.horarios.length > 1 ? `${aula.horarios.length} horários` : aula.doDia > 1 ? `${aula.horarios[0]}º horário` : "";
+  const sub = aula.recusada
+    ? aula.recusada.erro
+    : [aula.disciplina && capitalizar(aula.disciplina), horarios, (aula.feita || aula.travada) && resumoDasMarcas(aula)].filter(Boolean).join(" · ");
+  return `
+    <button class="linha ${estado}${hoje ? " hoje" : ""}" data-aula="${escapar(aula.chave)}">
+      <span class="sinal">${sinal}</span>
+      <span class="meio"><strong>${hoje ? "Hoje" : diaDaSemana(aula.data)} · ${aula.data.slice(0, 5)}${aula.inicio ? ` · ${escapar(aula.inicio)}` : ""}</strong><span>${escapar(sub)}</span></span>
       ${lado}
     </button>`;
 }
@@ -265,32 +293,56 @@ function desenharHoje() {
     if (linhas) partes.push(`<h2 class="titulo-secao recusa"><i></i>Não entrou</h2><div class="lista">${linhas}</div>`);
   }
 
+  // Só o dia. O período inteiro mora na aba Turmas.
   const hoje = aulasDeHoje();
   const agora = hoje.find((aula) => !aula.feita && !aula.travada && !aula.naFila && !aula.recusada);
-  partes.push(`<h2 class="titulo-secao"><i></i>Hoje</h2>`);
-  partes.push(hoje.length
-    ? `<div class="lista">${hoje.map((aula) => linhaDaAula(aula, { agora: aula === agora })).join("")}</div>`
-    : `<div class="lista"><p class="vazio">Nenhuma aula hoje.</p></div>`);
-
-  // Uma linha por turma com o que falta preencher; tocar abre as aulas dela.
-  const turmas = grade?.turmas ?? [];
-  if (turmas.length) {
-    const falta = new Map(turmas.map((turma) => [turma.nome, aulasDa(turma).filter(aPreencher).length]));
-    const total = [...falta.values()].reduce((a, b) => a + b, 0);
-    partes.push(`<h2 class="titulo-secao tras"><i></i>A preencher${total ? ` · ${total} aulas` : ""}</h2>`);
-    partes.push(`<div class="lista">${turmas.map((turma) => {
-      const n = falta.get(turma.nome);
-      return `<button class="linha ${n ? "" : "enviada"}" data-turma="${escapar(turma.nome)}">
-        <span class="meio"><strong>${escapar(turma.nome)}</strong><span>${n
-          ? `${n} ${n === 1 ? "aula" : "aulas"} a preencher`
-          : "Todas preenchidas"}</span></span>
-        ${n ? `<span class="acao">${n}</span>` : `<span class="feita">✓</span>`}</button>`;
-    }).join("")}</div>`);
-  } else if (grade) {
+  if (hoje.length) {
+    partes.push(`<h2 class="titulo-secao"><i></i>Aulas de hoje · ${hoje.length}</h2>`);
+    partes.push(`<div class="lista">${hoje.map((aula) => linhaDaAula(aula, { agora: aula === agora })).join("")}</div>`);
+  } else if (!grade) {
+    partes.push(`<div class="lista"><p class="vazio">Buscando a planilha…</p></div>`);
+  } else if (!grade.turmas?.length) {
     partes.push(`<div class="lista"><p class="vazio">A planilha ainda não tem turmas. Gere a planilha no Mestrão.</p></div>`);
+  } else {
+    partes.push(`<div class="cartao folga"><b>Hoje não tem aula.</b><span>As chamadas do período estão na aba Turmas.</span></div>`);
   }
 
   $("hoje-conteudo").innerHTML = partes.join("");
+}
+
+/** Um cartão por turma, como na v15: verde quando tudo está preenchido, contorno azul se a de hoje falta. */
+function desenharTurmas() {
+  const turmas = grade?.turmas ?? [];
+  const momento = grade?.periodo?.momento;
+  $("turmas-periodo").textContent = [momento && `${momento}º período`, turmas.length && `${turmas.length} turmas`].filter(Boolean).join(" · ");
+  if (!turmas.length) {
+    $("turmas-conteudo").innerHTML = `<div class="lista" style="margin-top:16px"><p class="vazio">${grade
+      ? "A planilha ainda não tem turmas. Gere a planilha no Mestrão."
+      : "Buscando a planilha…"}</p></div>`;
+    return;
+  }
+  const hoje = hojeRotulo();
+  $("turmas-conteudo").innerHTML = `<div class="cartoes">${turmas.map((turma) => {
+    const aulas = aulasDa(turma);
+    const falta = aulas.filter(aPreencher).length;
+    const deHoje = aulas.some((aula) => aula.data === hoje && aPreencher(aula));
+    const disciplinas = [...new Set(turma.aulas.map((c) => c.disciplina).filter(Boolean))].map(capitalizar);
+    const situacao = !falta
+      ? `<em class="ok">✓ Todas preenchidas</em>`
+      : deHoje ? `<em class="hoje">Chamada de hoje a fazer</em>` : `<em>${falta} a preencher</em>`;
+    return `
+      <button class="cartao-turma ${falta ? "" : "completa"} ${deHoje ? "hoje" : ""}" data-turma="${escapar(turma.nome)}">
+        <span class="sinal">${falta || "✓"}</span>
+        <span class="meio"><strong>${escapar(turma.nome)}</strong><span>${escapar([...disciplinas, `${turma.alunos.length} alunos`].join(" · "))}</span>${situacao}</span>
+        <span class="seta">›</span>
+      </button>`;
+  }).join("")}</div>`;
+}
+
+function abrirTurmas() {
+  turmaAberta = null;
+  desenharTurmas();
+  mostrar("turmas");
 }
 
 function abrirTurma(nome) {
@@ -298,20 +350,25 @@ function abrirTurma(nome) {
   if (!turma) return;
   turmaAberta = nome;
   const aulas = aulasDa(turma);
-  const hoje = hojeRotulo();
   $("turma-nome").textContent = turma.nome;
   const falta = aulas.filter(aPreencher).length;
   $("turma-resumo").textContent = `${turma.alunos.length} alunos · ${falta ? `${falta} de ${aulas.length} aulas a preencher` : `${aulas.length} aulas, todas preenchidas`}`;
-  // Aqui a turma já está no topo: cada linha diz o dia.
-  $("turma-aulas").innerHTML = `<div class="lista" style="margin-top:14px">${aulas.map((aula) =>
-    linhaDaAula(aula, {
-      hora: aula.data === hoje ? "hoje" : diaDaSemana(aula.data),
-      titulo: `${aula.data.slice(0, 5)}${aula.inicio ? ` · ${aula.inicio}` : ""}`
-    }).replace('class="linha', `class="linha${aula.data === hoje ? " hoje" : ""}`)).join("")}</div>`;
+  $("turma-aulas").innerHTML = `<div class="lista" style="margin-top:14px">${aulas.map((aula, i) => linhaDaData(aula, i + 1)).join("")}</div>`;
   mostrar("turma");
   // Abre em hoje; sem aula hoje, na primeira que falta preencher.
   (document.querySelector("#turma-aulas .hoje") ?? document.querySelector("#turma-aulas .linha:not(.enviada):not(.travada)"))
     ?.scrollIntoView({ block: "center" });
+}
+
+function redesenhar() {
+  if (telaAtual === "hoje") desenharHoje();
+  if (telaAtual === "turmas") desenharTurmas();
+  if (telaAtual === "turma" && turmaAberta) {
+    // A busca de fundo não pode tirar a lista do lugar onde ele está.
+    const onde = window.scrollY;
+    abrirTurma(turmaAberta);
+    window.scrollTo(0, onde);
+  }
 }
 
 function acharAula(chave) {
@@ -330,18 +387,17 @@ function abrirChamada(chave) {
     avisar("Essa aula não está mais na planilha.");
     return;
   }
-  if (aula.travada) {
-    avisar("Aula validada pelo GAF: o SIAEP não aceita mais alteração nela.");
-    return;
-  }
+  // Validada pelo GAF: abre só para ver quem faltou e por quê.
+  const soVer = aula.travada;
   // As colunas que o GAF fechou ficam de fora da escrita e da comparação.
-  const abertas = aula.colunas.filter((c) => !c.travada);
+  const abertas = soVer ? aula.colunas : aula.colunas.filter((c) => !c.travada);
   // O rascunho guarda só quem ele tocou: o resto vem da planilha, para uma
   // mudança que chegou por lá não ser coberta por um "presente" que ele nem marcou.
-  const rascunho = lido(chaveDoRascunho(aula), {});
+  const rascunho = soVer ? {} : lido(chaveDoRascunho(aula), {});
   aberta = {
     aula,
     abertas,
+    soVer,
     tocados: new Set(Object.keys(rascunho)),
     alunos: aula.turma.alunos.map((nome, i) => {
       const marcas = abertas.map((c) => c.marcas[i]);
@@ -354,7 +410,7 @@ function abrirChamada(chave) {
     })
   };
 
-  const quando = aula.data === hojeRotulo() ? "Hoje" : diaCurto(aula.data);
+  const quando = aula.data === hojeRotulo() ? "Hoje" : diaDaSemana(aula.data);
   $("chamada-quando").textContent = [quando, aula.data.slice(0, 5), aula.inicio, aula.disciplina && capitalizar(aula.disciplina),
     aula.horarios.length > 1 && `${aula.horarios.length} horários`]
     .filter(Boolean).join(" · ");
@@ -362,11 +418,14 @@ function abrirChamada(chave) {
   const fechados = aula.colunas.filter((c) => c.travada).map((c) => `${c.horario}º`);
   const aviso = $("chamada-aviso");
   aviso.hidden = !(fechados.length || aula.feita);
-  aviso.textContent = fechados.length
-    ? `O ${fechados.join(" e ")} horário já foi validado pelo GAF e fica como está.`
-    : "Esta chamada já está na planilha. Corrija o que precisar e envie de novo.";
+  aviso.textContent = soVer
+    ? "Validada pelo GAF: o SIAEP não aceita mais alteração. Só para ver."
+    : fechados.length
+      ? `O ${fechados.join(" e ")} horário já foi validado pelo GAF e fica como está.`
+      : "Esta chamada já está na planilha. Corrija o que precisar e envie de novo.";
   $("btn-enviar").textContent = aula.feita ? "Enviar correção" : "Enviar chamada";
   $("btn-enviar").disabled = false;
+  $("btn-enviar").hidden = soVer;
   desenharAlunos();
   mostrar("chamada");
 }
@@ -379,8 +438,8 @@ function desenharAlunos() {
       <div class="aluno ${falta ? "falta" : just ? "just" : ""}">
         <span class="n">${i + 1}</span>
         <span class="nome">${escapar(aluno.nome)}${just ? `<small>${escapar(NOME_DO_MOTIVO[aluno.marca] ?? aluno.marca)}</small>` : ""}</span>
-        <button class="bt bt-f" data-falta="${i}" aria-label="Falta de ${escapar(aluno.nome)}">F</button>
-        <button class="bt bt-j" data-justificar="${i}" aria-label="Justificar ${escapar(aluno.nome)}">${just ? escapar(aluno.marca) : "J"}</button>
+        <button class="bt bt-f" data-falta="${i}" aria-label="Falta de ${escapar(aluno.nome)}" ${aberta.soVer ? "disabled" : ""}>F</button>
+        <button class="bt bt-j" data-justificar="${i}" aria-label="Justificar ${escapar(aluno.nome)}" ${aberta.soVer ? "disabled" : ""}>${just ? escapar(aluno.marca) : "J"}</button>
       </div>`;
   }).join("");
   const faltas = aberta.alunos.filter((a) => a.marca === "F").length;
@@ -464,8 +523,7 @@ function atualizarGrade() {
     })
     .finally(() => {
       buscando = null;
-      if (telaAtual === "hoje") desenharHoje();
-      if (telaAtual === "turma" && turmaAberta) abrirTurma(turmaAberta);
+      redesenhar();
     });
   return buscando;
 }
@@ -534,7 +592,7 @@ function esvaziarFila() {
     }
   })().finally(() => {
     esvaziando = null;
-    if (telaAtual === "hoje") desenharHoje();
+    redesenhar();
   });
   return esvaziando;
 }
@@ -563,6 +621,7 @@ async function enviar() {
 
 function mostrarResultado(aula, resultado) {
   const quando = `${aula.turma.nome} · ${aula.data.slice(0, 5)}${aula.inicio ? ` · ${aula.inicio}` : ""}`;
+  const volta = turmaAberta ? "Voltar para a turma" : "Voltar para Hoje";
   let html;
   if (resultado.tipo === "ok") {
     const r = resultado.recibo;
@@ -586,14 +645,14 @@ function mostrarResultado(aula, resultado) {
       </div>
       ${notas.map((n) => `<p>${n}</p>`).join("")}
       ${proxima ? `<button class="btn pri" type="button" data-proxima="${escapar(proxima.chave)}">Próxima: ${escapar(proxima.turma.nome)}${proxima.data === hojeRotulo() && proxima.inicio ? ` · ${escapar(proxima.inicio)}` : ` · ${escapar(diaCurto(proxima.data))}`}</button>` : ""}
-      <button class="btn ${proxima ? "sec" : "pri"}" value="hoje">Voltar para Hoje</button>`;
+      <button class="btn ${proxima ? "sec" : "pri"}" value="voltar">${volta}</button>`;
   } else if (resultado.tipo === "espera") {
     html = `
       <div class="selo espera">◷</div>
       <h3>Guardada no celular</h3>
       <p>${escapar(resultado.erro)} A chamada de ${escapar(quando)} vai sozinha quando a planilha responder.</p>
       <button class="btn pri" type="button" data-tentar>Tentar agora</button>
-      <button class="btn sec" value="hoje">Voltar para Hoje</button>`;
+      <button class="btn sec" value="voltar">${volta}</button>`;
   } else {
     html = `
       <div class="selo recusa">!</div>
@@ -601,7 +660,7 @@ function mostrarResultado(aula, resultado) {
       <p>${escapar(resultado.erro)}</p>
       <p>Suas marcas continuam guardadas nesta chamada.</p>
       <button class="btn pri" type="button" data-recarregar="${escapar(aula.chave)}">Buscar a planilha e abrir de novo</button>
-      <button class="btn sec" value="hoje">Voltar para Hoje</button>`;
+      <button class="btn sec" value="voltar">${volta}</button>`;
   }
   $("envio-conteudo").innerHTML = html;
   $("folha-envio").returnValue = "";
@@ -654,7 +713,10 @@ async function conectar() {
 document.addEventListener("click", (evento) => {
   const alvo = evento.target.closest("button");
   if (!alvo) return;
-  if (alvo.dataset.aula) abrirChamada(alvo.dataset.aula);
+  if (alvo.dataset.aba) {
+    if (alvo.dataset.aba === "hoje") voltarParaHoje();
+    else abrirTurmas();
+  } else if (alvo.dataset.aula) abrirChamada(alvo.dataset.aula);
   else if (alvo.dataset.turma) abrirTurma(alvo.dataset.turma);
   else if (alvo.dataset.falta) marcar(Number(alvo.dataset.falta), "F");
   else if (alvo.dataset.justificar) abrirMotivos(Number(alvo.dataset.justificar));
@@ -664,6 +726,7 @@ document.addEventListener("click", (evento) => {
     $("folha-motivo").close();
   } else if (alvo.hasAttribute("data-voltar")) {
     if (telaAtual === "chamada" && turmaAberta) abrirTurma(turmaAberta);
+    else if (telaAtual === "turma") abrirTurmas();
     else voltarParaHoje();
   } else if (alvo.dataset.proxima) {
     $("folha-envio").close();
@@ -686,7 +749,9 @@ function voltarParaHoje() {
 }
 
 $("folha-envio").addEventListener("close", () => {
-  if ($("folha-envio").returnValue === "hoje") voltarParaHoje();
+  if ($("folha-envio").returnValue !== "voltar") return;
+  if (turmaAberta) abrirTurma(turmaAberta);
+  else voltarParaHoje();
 });
 
 $("chip").addEventListener("click", () => {
@@ -718,7 +783,7 @@ $("btn-ajustes").addEventListener("click", () => {
 document.querySelectorAll('input[name="modo"]').forEach((el) => {
   el.addEventListener("change", () => {
     guardar(CHAVES.modo, el.value);
-    desenharHoje();
+    redesenhar();
   });
 });
 $("btn-atualizar").addEventListener("click", () => {
@@ -753,6 +818,12 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
+  // Versão nova assumiu: recarrega já nesta abertura, para não ficar uma volta
+  // na versão velha. Nunca no meio de uma chamada ou do código de conexão.
+  const tinhaVersao = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (tinhaVersao && telaAtual !== "chamada" && telaAtual !== "conectar") location.reload();
+  });
   navigator.serviceWorker.register(`sw.js?v=${VERSAO}`).catch(() => {});
 }
 

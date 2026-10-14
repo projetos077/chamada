@@ -1,5 +1,6 @@
-/* Chamada 16 — modelo A·2 (faixa azul do Mestrão), escolhido em 13/10/2026.
-   Cor só onde diz algo: a faixa, a ação, o que foi enviado, o que ficou para trás. */
+/* Chamada 17 — modelo A·2 (faixa azul do Mestrão), escolhido em 13/10/2026,
+   com as abas Hoje e Turmas da v15. Cor só onde diz algo: a faixa, a ação,
+   o que foi enviado, o que falta preencher. */
 :root {
   --tinta: #1f2430;
   --fraca: #6b7280;
@@ -37,7 +38,7 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
 
 .tela { display: none; }
 .tela.ativa { display: block; }
-.corpo-tela { padding-bottom: calc(24px + var(--pe)); }
+.corpo-tela { padding-bottom: calc(88px + var(--pe)); }
 
 /* ── A faixa ─────────────────────────────────────────────────────────────── */
 .banda {
@@ -80,31 +81,51 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
   color: var(--roxo); padding: 18px 20px 8px;
 }
 .titulo-secao i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; background: var(--azul); }
-.titulo-secao.tras i { background: #d97706; }
 .titulo-secao.recusa { color: var(--vermelho); }
 .titulo-secao.recusa i { background: var(--vermelho); }
-.titulo-secao.todas i { background: #9aa1ad; }
 
 .lista, .cartao { margin: 0 16px; background: var(--papel); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; }
 .linha { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; border-top: 1px solid var(--linha-fina); text-align: left; }
 .linha:first-child { border-top: 0; }
 .linha .hora { width: 44px; flex: none; font-size: 13px; color: var(--fraca); font-variant-numeric: tabular-nums; }
-.linha .meio { flex: 1; min-width: 0; }
-.linha .meio strong { display: block; font-size: 15.5px; font-weight: 600; }
-.linha .meio span { display: block; font-size: 12.5px; color: var(--fraca); }
+.meio { flex: 1; min-width: 0; }
+.meio strong { display: block; font-size: 15.5px; font-weight: 600; }
+.meio span { display: block; font-size: 12.5px; color: var(--fraca); }
 .linha .acao { flex: none; font-size: 13px; font-weight: 600; color: var(--azul); border: 1px solid var(--azul-claro); border-radius: 99px; padding: 6px 12px; }
 .linha .acao.agora { background: var(--azul); border-color: var(--azul); color: #fff; }
 .linha .feita { flex: none; font-size: 13px; font-weight: 600; color: var(--verde); }
 .linha .fila { flex: none; font-size: 13px; font-weight: 600; color: var(--laranja); }
 .linha .fechada { flex: none; font-size: 13px; color: var(--fraca); }
-.linha .seta { color: #9aa1ad; font-size: 20px; }
 .linha.enviada { background: var(--verde-fundo); }
-.linha.atrasada { background: var(--laranja-fundo); }
 .linha.recusada { background: var(--vermelho-fundo); }
 .linha.recusada .meio span { color: var(--vermelho); }
-.linha.travada { opacity: .6; }
-.linha.hoje .hora { color: var(--azul); font-weight: 700; }
+.linha.travada { background: #f7f8fa; }
+.linha.travada .meio strong { color: var(--fraca); }
+.linha.hoje:not(.enviada):not(.travada) { box-shadow: inset 3px 0 var(--azul); }
 .vazio { padding: 16px; font-size: 14px; color: var(--fraca); }
+.folga { margin-top: 18px; padding: 22px 18px; text-align: center; }
+.folga b { display: block; font-size: 19px; }
+.folga span { display: block; margin-top: 4px; font-size: 13.5px; color: var(--fraca); }
+
+/* ── Turmas (cartões da v15) ─────────────────────────────────────────────── */
+.cartoes { display: grid; gap: 10px; margin: 16px 16px 0; }
+.cartao-turma {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; text-align: left;
+  background: var(--papel); border: 1px solid var(--linha); border-radius: 14px;
+}
+.cartao-turma.completa { background: var(--verde-fundo); border-color: #bfe6cf; }
+.cartao-turma.hoje { border-color: var(--azul); box-shadow: 0 0 0 2px var(--azul-claro); }
+.cartao-turma em { display: block; margin-top: 3px; font-style: normal; font-size: 12.5px; font-weight: 600; color: var(--laranja); }
+.cartao-turma em.ok { color: var(--verde); }
+.cartao-turma em.hoje { color: var(--azul); }
+.seta { color: #9aa1ad; font-size: 22px; }
+.sinal {
+  width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  font-size: 14px; font-weight: 700; color: var(--azul); background: #eef1fd; font-variant-numeric: tabular-nums;
+}
+.completa .sinal, .linha.enviada .sinal { background: var(--verde); color: #fff; }
+.linha.travada .sinal { background: #eceef2; font-size: 13px; }
+.linha.recusada .sinal { background: var(--vermelho); color: #fff; }
 
 /* ── Chamada ─────────────────────────────────────────────────────────────── */
 #tela-chamada .banda { margin-bottom: 12px; }
@@ -115,6 +136,7 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
 .aluno .n { width: 20px; flex: none; color: #9aa1ad; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
 .aluno .nome { flex: 1; min-width: 0; font-size: 13.5px; letter-spacing: .01em; text-transform: uppercase; }
 .aluno .nome small { display: block; font-size: 11px; color: var(--laranja); text-transform: none; letter-spacing: 0; }
+.bt:disabled { cursor: default; }
 .bt { width: 44px; height: 38px; flex: none; border: 1px solid #d3d7de; border-radius: 10px; font-weight: 700; font-size: 14px; color: var(--fraca); background: #fff; }
 .aluno.falta { background: var(--vermelho-fundo); box-shadow: inset 3px 0 var(--vermelho); }
 .aluno.falta .bt-f { background: var(--vermelho); border-color: var(--vermelho); color: #fff; }
@@ -173,6 +195,17 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
 .conectar p { font-size: 14px; color: var(--fraca); line-height: 1.45; }
 .conectar textarea { width: 100%; margin-top: 12px; padding: 10px; border: 1px solid #d3d7de; border-radius: 10px; font-size: 13px; resize: none; }
 .erro { margin-top: 10px; color: var(--vermelho) !important; }
+
+/* ── Abas ────────────────────────────────────────────────────────────────── */
+.abas {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: flex;
+  padding-bottom: var(--pe); border-top: 1px solid var(--linha);
+  background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+}
+.abas[hidden] { display: none; }
+.abas button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0 7px; font-size: 11.5px; font-weight: 600; color: #8a919d; }
+.abas svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.abas button.ativa { color: var(--azul); }
 
 #aviso-rapido {
   position: fixed; left: 16px; right: 16px; bottom: calc(96px + var(--pe)); z-index: 5;

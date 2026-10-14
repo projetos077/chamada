@@ -10,7 +10,7 @@
   <title>Chamada</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="estilo.css?v=16">
+  <link rel="stylesheet" href="estilo.css?v=17">
 </head>
 <body>
   <!-- Primeira vez: o código que a Planilha Google mostra no menu Mestrão. -->
@@ -40,11 +40,21 @@
           <small id="hoje-data"></small>
           <button id="btn-ajustes" class="icone" aria-label="Ajustes">⚙︎</button>
         </div>
-        <h1>Chamada</h1>
+        <h1>Hoje</h1>
         <button id="chip" class="chip" type="button"><b></b><span>Conectando à planilha…</span></button>
       </div>
     </div>
     <div id="hoje-conteudo" class="corpo-tela"></div>
+  </section>
+
+  <section id="tela-turmas" class="tela">
+    <div class="banda">
+      <div class="topo">
+        <small id="turmas-periodo"></small>
+        <h1>Turmas</h1>
+      </div>
+    </div>
+    <div id="turmas-conteudo" class="corpo-tela"></div>
   </section>
 
   <section id="tela-turma" class="tela">
@@ -103,11 +113,17 @@
       <button id="btn-atualizar" class="btn sec" type="button">Buscar a planilha agora</button>
       <button id="btn-trocar-codigo" class="btn sec" type="button">Trocar o código de conexão</button>
       <button class="btn pri" value="fechar">Fechar</button>
-      <p class="versao">Chamada 16</p>
+      <p class="versao">Chamada 17</p>
     </form>
   </dialog>
 
+  <!-- Hoje e Turmas, como na v15: o dia na frente, o período inteiro ao lado. -->
+  <nav id="abas" class="abas" hidden>
+    <button type="button" data-aba="hoje"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Hoje</button>
+    <button type="button" data-aba="turmas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Turmas</button>
+  </nav>
+
   <div id="aviso-rapido" role="status"></div>
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>
