@@ -1,32 +1,55 @@
-/* Chamada 17 — modelo A·2 (faixa azul do Mestrão), escolhido em 13/10/2026,
-   com as abas Hoje e Turmas da v15. Cor só onde diz algo: a faixa, a ação,
-   o que foi enviado, o que falta preencher. */
+/* Chamada 18 — o tema gibi do Mestrão (temas.css, "GIBI CLÁSSICO") no celular,
+   escolhido em 13/10/2026: "muito claro" e sem separação no A·2 azul, e escuro
+   ele também não quer. Papel creme, contorno nanquim com sombra deslocada, faixa
+   amarela, etiqueta de post-it. Cada aula e cada turma é um quadrinho.
+
+   Três versões em Ajustes → Tema (`data-tema` no <html>, posto no index.html):
+   G2 papel jornal é o padrão (sem atributo); G1 clássico e G3 faixa nanquim só
+   trocam as cores abaixo. Cor com sentido não muda: ✓ verde, F vermelho,
+   justificada laranja, hoje amarelo. */
 :root {
-  --tinta: #1f2430;
-  --fraca: #6b7280;
-  --fundo: #f6f7f9;
-  --papel: #fff;
-  --linha: #e6e8ec;
-  --linha-fina: #eef0f3;
-  --azul: #3b5bdb;
-  --azul-claro: #d3dbf8;
-  --faixa: linear-gradient(140deg, #3b5bdb 0%, #4a3fd6 60%, #5b3bd0 100%);
-  --roxo: #4a3fd6;
-  --verde: #1f7a4c;
-  --verde-fundo: #f2fbf6;
-  --vermelho: #b83f36;
-  --vermelho-fundo: #fcedeb;
+  --nanquim: #1a1a1a;
+  --grafite: #22252f;
+  --amarelo: #ffd21f;
+  --postit: #fff3a0;
+  --tinta: var(--nanquim);
+  --fraca: #5e5a4c;
+  --verde: #1d7a36;
+  --verde-fundo: #dcf1d6;
+  --vermelho: #d4141c;
+  --vermelho-fundo: #fde3e1;
   --laranja: #b05410;
-  --laranja-fundo: #fff8ef;
+  --laranja-vivo: #ed7502;
+  --laranja-fundo: #ffe9cc;
   --topo: env(safe-area-inset-top, 0px);
   --pe: env(safe-area-inset-bottom, 0px);
+
+  /* G2 · papel jornal */
+  --fundo: #e6d9b5;
+  --reticula: radial-gradient(#5e4b1a1c 1.1px, transparent 1.5px) 0 0 / 7px 7px;
+  --quadro: #fffaea;
+  --risco: #c2b386;
+  --faixa: var(--amarelo);
+  --faixa-tinta: var(--nanquim);
+  --faixa-fraca: #4a4100;
+  --abas: var(--grafite);
+  --abas-tinta: #c9c3b0;
+  --abas-ativa: var(--amarelo);
+}
+:root[data-tema="g1"] {
+  --fundo: #f5eedb; --reticula: none; --quadro: #fffdf6; --risco: #cdbf98;
+  --abas: var(--quadro); --abas-tinta: var(--fraca); --abas-ativa: var(--nanquim);
+}
+:root[data-tema="g3"] {
+  --fundo: #ece2c6; --reticula: none; --quadro: #fffbef; --risco: #cdbf98;
+  --faixa: var(--grafite); --faixa-tinta: var(--amarelo); --faixa-fraca: #e9e3cf;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html { background: var(--fundo); }
 body {
   min-height: 100vh;
-  background: var(--fundo);
+  background: var(--reticula), var(--fundo);
   color: var(--tinta);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -38,178 +61,210 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
 
 .tela { display: none; }
 .tela.ativa { display: block; }
-.corpo-tela { padding-bottom: calc(88px + var(--pe)); }
+.corpo-tela { padding-bottom: calc(92px + var(--pe)); }
 
 /* ── A faixa ─────────────────────────────────────────────────────────────── */
+/* O relógio do iPhone é branco (black-translucent): atrás dele, nanquim. */
 .banda {
-  background: var(--faixa);
-  color: #fff;
-  border-radius: 0 0 26px 26px;
+  background: linear-gradient(var(--grafite) var(--topo), var(--faixa) var(--topo));
+  color: var(--faixa-tinta);
+  border-bottom: 3px solid var(--nanquim);
+  box-shadow: 0 4px 0 rgba(26, 26, 26, .18);
   padding: calc(var(--topo) + 10px) 0 16px;
 }
 .topo { padding: 4px 20px 0; }
 .topo-linha { display: flex; justify-content: space-between; align-items: center; }
-.topo small, .cab small { color: rgba(255, 255, 255, .8); font-size: 13px; }
-.topo h1 { font-size: 28px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; }
-.icone { width: 36px; height: 36px; border-radius: 50%; font-size: 18px; color: #fff; background: rgba(255, 255, 255, .14); }
+.topo small, .cab small { color: var(--faixa-fraca); font-size: 13px; font-weight: 600; }
+.topo h1 { font-size: 30px; font-weight: 900; letter-spacing: -.01em; margin-top: 2px; }
+.icone {
+  width: 36px; height: 36px; border-radius: 50%; font-size: 18px; color: var(--nanquim);
+  background: #fff; border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
+}
 .chip {
   display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 6px 11px;
-  border-radius: 99px; font-size: 12.5px; color: #fff; text-align: left;
-  background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 99px; font-size: 12.5px; font-weight: 600; color: var(--nanquim); text-align: left;
+  background: #fff; border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
 }
-.chip b { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #c9cfdc; }
-.chip.ok b { background: #7ef0b0; }
-.chip.fila b { background: #ffd29a; }
-.chip.erro b { background: #ffb4ad; }
+.chip b { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #c9c3b0; border: 1.5px solid var(--nanquim); }
+.chip.ok b { background: #2dab2e; }
+.chip.fila b { background: var(--laranja-vivo); }
+.chip.erro b { background: var(--vermelho); }
 
 .cab { display: flex; align-items: center; gap: 10px; padding: 4px 16px 0; }
-.cab strong { display: block; font-size: 19px; }
-.voltar { width: 34px; height: 40px; font-size: 32px; line-height: 1; color: #fff; flex: none; text-align: left; }
+.cab strong { display: block; font-size: 20px; font-weight: 900; }
+.voltar { width: 34px; height: 40px; font-size: 32px; line-height: 1; color: var(--faixa-tinta); flex: none; text-align: left; }
 
 .contas { display: flex; gap: 8px; padding: 12px 16px 0; }
 .contas span {
-  flex: 1; border-radius: 12px; padding: 8px 10px; font-size: 12px;
-  background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .22); color: rgba(255, 255, 255, .85);
+  flex: 1; border-radius: 10px; padding: 8px 10px; font-size: 12px; font-weight: 600; color: var(--fraca);
+  background: #fff; border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
 }
-.contas b { display: block; font-size: 22px; color: #fff; font-variant-numeric: tabular-nums; }
-.contas .f b { color: #ffb4ad; }
-.contas .j b { color: #ffd29a; }
+.contas b { display: block; font-size: 22px; font-weight: 900; color: var(--nanquim); font-variant-numeric: tabular-nums; }
+.contas .f b { color: var(--vermelho); }
+.contas .j b { color: var(--laranja); }
 
-/* ── Listas ──────────────────────────────────────────────────────────────── */
+/* ── Listas: cada aula é um quadrinho ────────────────────────────────────── */
+/* O título pequeno vira etiqueta de post-it, como o "hoje" do gibi no Mestrão. */
 .titulo-secao {
-  font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--roxo); padding: 18px 20px 8px;
+  display: table; margin: 20px 0 12px 18px; padding: 3px 10px;
+  font-size: 12px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; color: var(--nanquim);
+  background: var(--postit); border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
+  transform: rotate(-2deg);
 }
-.titulo-secao i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; background: var(--azul); }
-.titulo-secao.recusa { color: var(--vermelho); }
-.titulo-secao.recusa i { background: var(--vermelho); }
+.titulo-secao i { display: none; }
+.titulo-secao.recusa { background: var(--vermelho-fundo); color: var(--vermelho); }
 
-.lista, .cartao { margin: 0 16px; background: var(--papel); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; }
-.linha { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; border-top: 1px solid var(--linha-fina); text-align: left; }
-.linha:first-child { border-top: 0; }
-.linha .hora { width: 44px; flex: none; font-size: 13px; color: var(--fraca); font-variant-numeric: tabular-nums; }
+.lista { display: grid; gap: 10px; margin: 0 18px 0 16px; }
+.lista .linha, .lista .vazio, .cartao, .cartao-turma {
+  background: var(--quadro); border: 2px solid var(--nanquim); border-radius: 10px; box-shadow: 4px 4px 0 var(--nanquim);
+}
+.cartao { margin: 0 18px 0 16px; }
+.linha { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; text-align: left; }
+.linha .hora { width: 44px; flex: none; font-size: 13px; font-weight: 800; color: var(--nanquim); font-variant-numeric: tabular-nums; }
 .meio { flex: 1; min-width: 0; }
-.meio strong { display: block; font-size: 15.5px; font-weight: 600; }
+.meio strong { display: block; font-size: 15.5px; font-weight: 800; }
 .meio span { display: block; font-size: 12.5px; color: var(--fraca); }
-.linha .acao { flex: none; font-size: 13px; font-weight: 600; color: var(--azul); border: 1px solid var(--azul-claro); border-radius: 99px; padding: 6px 12px; }
-.linha .acao.agora { background: var(--azul); border-color: var(--azul); color: #fff; }
-.linha .feita { flex: none; font-size: 13px; font-weight: 600; color: var(--verde); }
-.linha .fila { flex: none; font-size: 13px; font-weight: 600; color: var(--laranja); }
-.linha .fechada { flex: none; font-size: 13px; color: var(--fraca); }
+.linha .acao {
+  flex: none; font-size: 13px; font-weight: 800; color: var(--nanquim); padding: 6px 12px; border-radius: 99px;
+  background: #fff; border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
+}
+.linha .acao.agora { background: var(--amarelo); }
+.linha .feita { flex: none; font-size: 13px; font-weight: 800; color: var(--verde); }
+.linha .fila { flex: none; font-size: 13px; font-weight: 800; color: var(--laranja); }
+.linha .fechada { flex: none; font-size: 13px; font-weight: 700; color: var(--fraca); }
 .linha.enviada { background: var(--verde-fundo); }
 .linha.recusada { background: var(--vermelho-fundo); }
 .linha.recusada .meio span { color: var(--vermelho); }
-.linha.travada { background: #f7f8fa; }
+/* Validada pelo GAF: hachura, o sombreado de gibi, e sombra menor — está fora do jogo. */
+.linha.travada { background: repeating-linear-gradient(135deg, transparent 0 7px, rgba(26, 26, 26, .07) 7px 8.5px), #ebe4cf; box-shadow: 2px 2px 0 var(--nanquim); }
 .linha.travada .meio strong { color: var(--fraca); }
-.linha.hoje:not(.enviada):not(.travada) { box-shadow: inset 3px 0 var(--azul); }
+.linha.hoje:not(.enviada):not(.travada) { background: var(--postit); border-style: dashed; }
 .vazio { padding: 16px; font-size: 14px; color: var(--fraca); }
-.folga { margin-top: 18px; padding: 22px 18px; text-align: center; }
-.folga b { display: block; font-size: 19px; }
+.folga { margin-top: 22px; padding: 24px 18px; text-align: center; }
+.folga b { display: block; font-size: 21px; font-weight: 900; }
 .folga span { display: block; margin-top: 4px; font-size: 13.5px; color: var(--fraca); }
 
 /* ── Turmas (cartões da v15) ─────────────────────────────────────────────── */
-.cartoes { display: grid; gap: 10px; margin: 16px 16px 0; }
-.cartao-turma {
-  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; text-align: left;
-  background: var(--papel); border: 1px solid var(--linha); border-radius: 14px;
-}
-.cartao-turma.completa { background: var(--verde-fundo); border-color: #bfe6cf; }
-.cartao-turma.hoje { border-color: var(--azul); box-shadow: 0 0 0 2px var(--azul-claro); }
-.cartao-turma em { display: block; margin-top: 3px; font-style: normal; font-size: 12.5px; font-weight: 600; color: var(--laranja); }
+.cartoes { display: grid; gap: 14px; margin: 20px 18px 0 16px; }
+.cartao-turma { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; text-align: left; }
+.cartao-turma strong { font-size: 17px; font-weight: 900; }
+.cartao-turma.completa { background: var(--verde-fundo); }
+.cartao-turma.hoje { background: var(--postit); border-style: dashed; }
+.cartao-turma em { display: block; margin-top: 3px; font-style: normal; font-size: 12.5px; font-weight: 800; color: var(--laranja); }
 .cartao-turma em.ok { color: var(--verde); }
-.cartao-turma em.hoje { color: var(--azul); }
-.seta { color: #9aa1ad; font-size: 22px; }
+.cartao-turma em.hoje { color: var(--nanquim); }
+.seta { color: var(--nanquim); font-size: 22px; font-weight: 900; }
 .sinal {
   width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center;
-  font-size: 14px; font-weight: 700; color: var(--azul); background: #eef1fd; font-variant-numeric: tabular-nums;
+  font-size: 14px; font-weight: 900; color: var(--nanquim); background: #fff; border: 2px solid var(--nanquim);
+  font-variant-numeric: tabular-nums;
 }
 .completa .sinal, .linha.enviada .sinal { background: var(--verde); color: #fff; }
-.linha.travada .sinal { background: #eceef2; font-size: 13px; }
+.linha.travada .sinal { font-size: 13px; }
 .linha.recusada .sinal { background: var(--vermelho); color: #fff; }
 
-/* ── Chamada ─────────────────────────────────────────────────────────────── */
-#tela-chamada .banda { margin-bottom: 12px; }
-.aviso { margin: 0 16px 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; background: var(--laranja-fundo); color: var(--laranja); }
-.alunos { margin: 0 12px; }
-.aluno { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--linha-fina); }
+/* ── Chamada: um quadro só, com risco visível entre os alunos ────────────── */
+#tela-chamada .banda { margin-bottom: 16px; }
+.aviso {
+  margin: 0 18px 12px 16px; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  background: var(--postit); color: var(--nanquim); border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
+}
+/* Também tem a classe `lista`: aqui os alunos ficam juntos, sem o respiro dos quadrinhos. */
+.alunos {
+  display: block; margin: 0 18px 0 14px; overflow: hidden;
+  background: var(--quadro); border: 2px solid var(--nanquim); border-radius: 10px; box-shadow: 4px 4px 0 var(--nanquim);
+}
+.aluno { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-top: 1.5px solid var(--risco); }
 .aluno:first-child { border-top: 0; }
-.aluno .n { width: 20px; flex: none; color: #9aa1ad; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
-.aluno .nome { flex: 1; min-width: 0; font-size: 13.5px; letter-spacing: .01em; text-transform: uppercase; }
-.aluno .nome small { display: block; font-size: 11px; color: var(--laranja); text-transform: none; letter-spacing: 0; }
-.bt:disabled { cursor: default; }
-.bt { width: 44px; height: 38px; flex: none; border: 1px solid #d3d7de; border-radius: 10px; font-weight: 700; font-size: 14px; color: var(--fraca); background: #fff; }
-.aluno.falta { background: var(--vermelho-fundo); box-shadow: inset 3px 0 var(--vermelho); }
-.aluno.falta .bt-f { background: var(--vermelho); border-color: var(--vermelho); color: #fff; }
-.aluno.just { background: #fdf0e8; box-shadow: inset 3px 0 var(--laranja); }
-.aluno.just .bt-j { background: var(--laranja); border-color: var(--laranja); color: #fff; }
+.aluno .n { width: 20px; flex: none; color: var(--fraca); font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.aluno .nome { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; }
+.aluno .nome small { display: block; font-size: 11px; font-weight: 700; color: var(--laranja); text-transform: none; letter-spacing: 0; }
+.bt {
+  width: 44px; height: 38px; flex: none; border-radius: 10px; font-weight: 900; font-size: 14px; color: var(--nanquim);
+  background: #fff; border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
+}
+.bt:disabled { cursor: default; box-shadow: none; }
+.aluno.falta { background: var(--vermelho-fundo); box-shadow: inset 5px 0 var(--vermelho); }
+.aluno.falta .bt-f { background: var(--vermelho); color: #fff; }
+.aluno.just { background: var(--laranja-fundo); box-shadow: inset 5px 0 var(--laranja-vivo); }
+.aluno.just .bt-j { background: var(--laranja-vivo); }
 .espaco-do-botao { height: calc(110px + var(--pe)); }
 .flutua {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + var(--pe));
-  min-width: 220px; background: var(--azul); color: #fff; border-radius: 99px; padding: 15px 26px;
-  font-weight: 600; font-size: 16px; box-shadow: 0 8px 24px rgba(59, 91, 219, .35); white-space: nowrap;
+  min-width: 220px; padding: 15px 26px; border-radius: 99px; white-space: nowrap;
+  font-weight: 900; font-size: 16px; color: var(--nanquim);
+  background: var(--amarelo); border: 2.5px solid var(--nanquim); box-shadow: 4px 4px 0 var(--nanquim);
 }
 .flutua:disabled { opacity: .85; }
 .flutua .gira {
   display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px;
-  border: 2px solid rgba(255, 255, 255, .4); border-top-color: #fff; border-radius: 50%; animation: gira .8s linear infinite;
+  border: 2px solid rgba(26, 26, 26, .3); border-top-color: var(--nanquim); border-radius: 50%; animation: gira .8s linear infinite;
 }
 @keyframes gira { to { transform: rotate(360deg); } }
 
 /* ── Folhas que sobem de baixo ───────────────────────────────────────────── */
 .folha {
-  margin: auto auto 0; width: 100%; max-width: 560px; border: 0; border-radius: 22px 22px 0 0;
-  padding: 10px 22px calc(26px + var(--pe)); background: #fff; color: var(--tinta);
+  margin: auto auto 0; width: 100%; max-width: 560px; max-height: 92vh; overflow: auto;
+  border: 0; border-top: 3px solid var(--nanquim); border-radius: 22px 22px 0 0;
+  padding: 10px 22px calc(26px + var(--pe)); background: var(--quadro); color: var(--tinta);
 }
-.folha::backdrop { background: rgba(17, 24, 39, .38); }
+.folha::backdrop { background: rgba(26, 26, 26, .45); }
 .folha[open] { animation: sobe .22s ease-out; }
 @keyframes sobe { from { transform: translateY(40px); opacity: .4; } }
-.pega { width: 38px; height: 5px; border-radius: 9px; background: #d3d7de; margin: 0 auto 16px; }
+.pega { width: 38px; height: 5px; border-radius: 9px; background: var(--risco); margin: 0 auto 16px; }
 .folha small { color: var(--fraca); font-size: 12.5px; }
-.folha h3 { font-size: 22px; margin-top: 10px; }
+.folha h3 { font-size: 22px; font-weight: 900; margin-top: 10px; }
 .folha p { color: var(--fraca); font-size: 14px; margin-top: 4px; }
-.selo { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; font-weight: 700; color: #fff; background: #26784f; }
-.selo.espera { background: #d97706; }
+.selo {
+  width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; font-weight: 900;
+  color: #fff; background: var(--verde); border: 2.5px solid var(--nanquim); box-shadow: 3px 3px 0 var(--nanquim);
+}
+.selo.espera { background: var(--laranja-vivo); color: var(--nanquim); }
 .selo.recusa { background: var(--vermelho); }
-.recibo { margin-top: 16px; border: 1px solid var(--linha); border-radius: 12px; }
-.recibo div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--linha-fina); font-size: 14px; }
+.recibo { margin-top: 16px; border: 2px solid var(--nanquim); border-radius: 10px; background: #fff; }
+.recibo div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1.5px solid var(--risco); font-size: 14px; }
 .recibo div:first-child { border-top: 0; }
 .recibo em { font-style: normal; color: var(--fraca); }
 .recibo .f b { color: var(--vermelho); }
 .recibo .j b { color: var(--laranja); }
-.recibo .nomes { display: block; font-size: 12.5px; color: #374151; line-height: 1.7; }
-.btn { display: block; width: 100%; text-align: center; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 15.5px; margin-top: 12px; }
-.btn.pri { background: var(--faixa); color: #fff; }
-.btn.sec { border: 1px solid #d3d7de; background: #fff; }
-.motivos { display: grid; gap: 8px; margin-top: 14px; max-height: 60vh; overflow: auto; }
-.motivos button { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border: 1px solid var(--linha); border-radius: 12px; text-align: left; font-size: 14.5px; }
-.motivos button b { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: #fdf0e8; color: var(--laranja); flex: none; }
-.motivos button.ativo { border-color: var(--laranja); background: #fdf0e8; }
+.recibo .nomes { display: block; font-size: 12.5px; color: var(--nanquim); line-height: 1.7; }
+.btn { display: block; width: 100%; text-align: center; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 15.5px; margin-top: 12px; }
+.btn.pri { background: var(--amarelo); color: var(--nanquim); border: 2px solid var(--nanquim); box-shadow: 3px 3px 0 var(--nanquim); font-weight: 900; }
+.btn.sec { background: #fff; border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim); }
+.motivos { display: grid; gap: 8px; margin-top: 14px; max-height: 60vh; overflow: auto; padding: 0 4px 4px 0; }
+.motivos button { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border: 2px solid var(--nanquim); border-radius: 10px; background: #fff; text-align: left; font-size: 14.5px; }
+.motivos button b { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--laranja-fundo); color: var(--laranja); border: 1.5px solid var(--nanquim); flex: none; }
+.motivos button.ativo { background: var(--laranja-fundo); box-shadow: 3px 3px 0 var(--nanquim); }
 .motivos button.presente b { background: var(--verde-fundo); color: var(--verde); }
-.rotulo { margin-top: 16px; font-weight: 600; color: var(--tinta) !important; }
-.opcao { display: flex; gap: 10px; align-items: center; padding: 10px 0; font-size: 14.5px; }
-.opcao input { width: 20px; height: 20px; accent-color: var(--azul); }
+.rotulo { margin-top: 16px; font-weight: 800; color: var(--tinta) !important; }
+.opcao { display: flex; gap: 10px; align-items: center; padding: 9px 0; font-size: 14.5px; }
+.opcao input { width: 20px; height: 20px; accent-color: var(--nanquim); }
 .versao { text-align: center; font-size: 12px !important; margin-top: 14px !important; }
 
 /* ── Conectar ────────────────────────────────────────────────────────────── */
 .conectar { padding: 16px; }
 .conectar p { font-size: 14px; color: var(--fraca); line-height: 1.45; }
-.conectar textarea { width: 100%; margin-top: 12px; padding: 10px; border: 1px solid #d3d7de; border-radius: 10px; font-size: 13px; resize: none; }
+.conectar textarea { width: 100%; margin-top: 12px; padding: 10px; border: 2px solid var(--nanquim); border-radius: 10px; background: #fff; font-size: 13px; resize: none; }
 .erro { margin-top: 10px; color: var(--vermelho) !important; }
 
 /* ── Abas ────────────────────────────────────────────────────────────────── */
 .abas {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: flex;
-  padding-bottom: var(--pe); border-top: 1px solid var(--linha);
-  background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  padding-bottom: var(--pe); background: var(--abas); border-top: 3px solid var(--nanquim);
 }
 .abas[hidden] { display: none; }
-.abas button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0 7px; font-size: 11.5px; font-weight: 600; color: #8a919d; }
-.abas svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
-.abas button.ativa { color: var(--azul); }
+.abas button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0 7px; font-size: 11.5px; font-weight: 800; color: var(--abas-tinta); }
+.abas svg {
+  width: 52px; height: 30px; padding: 2px 10px; border: 2px solid transparent; border-radius: 10px;
+  fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round;
+}
+.abas button.ativa { color: var(--abas-ativa); }
+.abas button.ativa svg { color: var(--nanquim); background: var(--amarelo); border-color: var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim); }
 
 #aviso-rapido {
   position: fixed; left: 16px; right: 16px; bottom: calc(96px + var(--pe)); z-index: 5;
-  padding: 12px 14px; border-radius: 12px; background: #1f2430; color: #fff; font-size: 14px;
+  padding: 12px 14px; border-radius: 10px; background: var(--grafite); color: #fff; font-size: 14px;
+  border: 2px solid var(--nanquim); box-shadow: 3px 3px 0 var(--nanquim);
   opacity: 0; transform: translateY(10px); transition: .2s; pointer-events: none;
 }
 #aviso-rapido.mostra { opacity: 1; transform: none; }

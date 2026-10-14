@@ -29,6 +29,9 @@ etapa travava. Agora:
   diz "Hoje não tem aula"); **Turmas** com um cartão por turma e, dentro, as
   datas do período com a disciplina — verde quando feita, 🔒 quando validada
   pelo GAF. A validada abre só para ver; as outras abrem para corrigir.
+- Visual (versão 18, 13/10/2026): o tema **gibi** do Mestrão — papel creme,
+  contorno nanquim, faixa amarela. Em **Ajustes → Tema**: G2 papel jornal
+  (padrão), G1 clássico, G3 faixa nanquim. A escolha fica no aparelho.
 - Vazio ou `0` é presente; `F` falta; `I A E G S T U O P` são os motivos da
   Mestre 1.0.57. Presente é gravado como `0`, para a aula constar como feita.
 - Data repetida são horários distintos. **Juntos** (padrão): uma chamada por

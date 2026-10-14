@@ -11,7 +11,7 @@
 // sair, e só sai da fila quando o carteiro responde. Sem internet, ela fica e
 // vai sozinha depois.
 
-const VERSAO = "17";
+const VERSAO = "18";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -19,7 +19,8 @@ const CHAVES = {
   fila: "chamada:fila",
   recusas: "chamada:recusas",
   recibos: "chamada:recibos",
-  modo: "mestre:horarios"
+  modo: "mestre:horarios",
+  tema: "chamada:tema"
 };
 const MOTIVOS = [
   ["I", "Impossibilidade de participação"],
@@ -778,12 +779,23 @@ $("btn-ajustes").addEventListener("click", () => {
   document.querySelectorAll('input[name="modo"]').forEach((el) => {
     el.checked = el.value === (juntos() ? "juntos" : "separados");
   });
+  // Sem escolha guardada, o G2 (index.html põe o tema antes do primeiro desenho).
+  const tema = document.documentElement.dataset.tema || "g2";
+  document.querySelectorAll('input[name="tema"]').forEach((el) => {
+    el.checked = el.value === tema;
+  });
   $("folha-ajustes").showModal();
 });
 document.querySelectorAll('input[name="modo"]').forEach((el) => {
   el.addEventListener("change", () => {
     guardar(CHAVES.modo, el.value);
     redesenhar();
+  });
+});
+document.querySelectorAll('input[name="tema"]').forEach((el) => {
+  el.addEventListener("change", () => {
+    document.documentElement.dataset.tema = el.value;
+    guardar(CHAVES.tema, el.value);
   });
 });
 $("btn-atualizar").addEventListener("click", () => {

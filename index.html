@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#3b5bdb">
+  <meta name="theme-color" content="#22252f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Chamada">
   <title>Chamada</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="estilo.css?v=17">
+  <link rel="stylesheet" href="estilo.css?v=18">
+  <!-- O tema antes do primeiro desenho, para não piscar o G2 em quem escolheu outro. -->
+  <script>try { const t = JSON.parse(localStorage.getItem("chamada:tema")); if (t) document.documentElement.dataset.tema = t; } catch {}</script>
 </head>
 <body>
   <!-- Primeira vez: o código que a Planilha Google mostra no menu Mestrão. -->
@@ -107,13 +109,17 @@
     <form method="dialog">
       <div class="pega"></div>
       <h3>Ajustes</h3>
+      <p class="rotulo">Tema</p>
+      <label class="opcao"><input type="radio" name="tema" value="g2"> Gibi papel jornal (padrão)</label>
+      <label class="opcao"><input type="radio" name="tema" value="g1"> Gibi clássico</label>
+      <label class="opcao"><input type="radio" name="tema" value="g3"> Gibi faixa nanquim</label>
       <p class="rotulo">Horários do mesmo dia</p>
       <label class="opcao"><input type="radio" name="modo" value="juntos"> Uma chamada, gravada em todos os horários</label>
       <label class="opcao"><input type="radio" name="modo" value="separados"> Uma chamada para cada horário</label>
       <button id="btn-atualizar" class="btn sec" type="button">Buscar a planilha agora</button>
       <button id="btn-trocar-codigo" class="btn sec" type="button">Trocar o código de conexão</button>
       <button class="btn pri" value="fechar">Fechar</button>
-      <p class="versao">Chamada 17</p>
+      <p class="versao">Chamada 18</p>
     </form>
   </dialog>
 
@@ -124,6 +130,6 @@
   </nav>
 
   <div id="aviso-rapido" role="status"></div>
-  <script src="app.js?v=17"></script>
+  <script src="app.js?v=18"></script>
 </body>
 </html>
