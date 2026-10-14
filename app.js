@@ -11,7 +11,7 @@
 // sair, e só sai da fila quando o carteiro responde. Sem internet, ela fica e
 // vai sozinha depois.
 
-const VERSAO = "18";
+const VERSAO = "19";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -178,6 +178,10 @@ function descricao(aula, comData = false) {
   return partes.join(" · ");
 }
 
+// O nome que o Mestrão mostra ("ADM-200", "Eletiva"), mandado com o período
+// (14/10/2026). A chave continua o número do SIAEP: é ele que o carteiro acha.
+const nomeDa = (turma) => grade?.periodo?.nomes?.[turma.nome] || turma.nome;
+
 // O SIAEP manda sem acento: FISICA, EDUCACAO DIGITAL(IS).
 function capitalizar(texto) {
   return texto.replace(/CAO\b/g, "ÇÃO").replace(/\bFISICA\b/g, "FÍSICA").replace(/\bMATEMATICA\b/g, "MATEMÁTICA")
@@ -226,7 +230,7 @@ function linhaDaAula(aula, { agora = false, comData = false, hora } = {}) {
   return `
     <button class="linha ${estado}" data-aula="${escapar(aula.chave)}">
       <span class="hora">${escapar(hora ?? aula.inicio ?? "")}</span>
-      <span class="meio"><strong>${escapar(aula.turma.nome)}</strong><span>${sub}</span></span>
+      <span class="meio"><strong>${escapar(nomeDa(aula.turma))}</strong><span>${sub}</span></span>
       ${lado}
     </button>`;
 }
@@ -334,7 +338,7 @@ function desenharTurmas() {
     return `
       <button class="cartao-turma ${falta ? "" : "completa"} ${deHoje ? "hoje" : ""}" data-turma="${escapar(turma.nome)}">
         <span class="sinal">${falta || "✓"}</span>
-        <span class="meio"><strong>${escapar(turma.nome)}</strong><span>${escapar([...disciplinas, `${turma.alunos.length} alunos`].join(" · "))}</span>${situacao}</span>
+        <span class="meio"><strong>${escapar(nomeDa(turma))}</strong><span>${escapar([...disciplinas, `${turma.alunos.length} alunos`].join(" · "))}</span>${situacao}</span>
         <span class="seta">›</span>
       </button>`;
   }).join("")}</div>`;
@@ -351,7 +355,7 @@ function abrirTurma(nome) {
   if (!turma) return;
   turmaAberta = nome;
   const aulas = aulasDa(turma);
-  $("turma-nome").textContent = turma.nome;
+  $("turma-nome").textContent = nomeDa(turma);
   const falta = aulas.filter(aPreencher).length;
   $("turma-resumo").textContent = `${turma.alunos.length} alunos · ${falta ? `${falta} de ${aulas.length} aulas a preencher` : `${aulas.length} aulas, todas preenchidas`}`;
   $("turma-aulas").innerHTML = `<div class="lista" style="margin-top:14px">${aulas.map((aula, i) => linhaDaData(aula, i + 1)).join("")}</div>`;
@@ -409,13 +413,16 @@ function abrirChamada(chave) {
         antes: Object.fromEntries(abertas.map((c) => [c.horario, c.marcas[i]]))
       };
     })
+      // Ordem alfabética, o padrão (14/10/2026): a planilha antiga traz quem se
+      // matriculou depois no fim. A chamada vai por nome, não por posição.
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
   };
 
   const quando = aula.data === hojeRotulo() ? "Hoje" : diaDaSemana(aula.data);
   $("chamada-quando").textContent = [quando, aula.data.slice(0, 5), aula.inicio, aula.disciplina && capitalizar(aula.disciplina),
     aula.horarios.length > 1 && `${aula.horarios.length} horários`]
     .filter(Boolean).join(" · ");
-  $("chamada-turma").textContent = aula.turma.nome;
+  $("chamada-turma").textContent = nomeDa(aula.turma);
   const fechados = aula.colunas.filter((c) => c.travada).map((c) => `${c.horario}º`);
   const aviso = $("chamada-aviso");
   aviso.hidden = !(fechados.length || aula.feita);
@@ -621,7 +628,7 @@ async function enviar() {
 }
 
 function mostrarResultado(aula, resultado) {
-  const quando = `${aula.turma.nome} · ${aula.data.slice(0, 5)}${aula.inicio ? ` · ${aula.inicio}` : ""}`;
+  const quando = `${nomeDa(aula.turma)} · ${aula.data.slice(0, 5)}${aula.inicio ? ` · ${aula.inicio}` : ""}`;
   const volta = turmaAberta ? "Voltar para a turma" : "Voltar para Hoje";
   let html;
   if (resultado.tipo === "ok") {
@@ -645,7 +652,7 @@ function mostrarResultado(aula, resultado) {
         <div><em>Conferida na planilha</em><b>${horaDe(r.conferidaEm)}</b></div>
       </div>
       ${notas.map((n) => `<p>${n}</p>`).join("")}
-      ${proxima ? `<button class="btn pri" type="button" data-proxima="${escapar(proxima.chave)}">Próxima: ${escapar(proxima.turma.nome)}${proxima.data === hojeRotulo() && proxima.inicio ? ` · ${escapar(proxima.inicio)}` : ` · ${escapar(diaCurto(proxima.data))}`}</button>` : ""}
+      ${proxima ? `<button class="btn pri" type="button" data-proxima="${escapar(proxima.chave)}">Próxima: ${escapar(nomeDa(proxima.turma))}${proxima.data === hojeRotulo() && proxima.inicio ? ` · ${escapar(proxima.inicio)}` : ` · ${escapar(diaCurto(proxima.data))}`}</button>` : ""}
       <button class="btn ${proxima ? "sec" : "pri"}" value="voltar">${volta}</button>`;
   } else if (resultado.tipo === "espera") {
     html = `
