@@ -10,8 +10,11 @@
 //
 //   Mestrão → {acao: "gerar", abas, periodo}   grava a planilha do período
 //   Mestrão → {acao: "ler", desde}             a aba FREQÊNCIA em linhas
+//                                              (e as abas AVALIAÇÕES e NOTAS)
 //   celular → {acao: "grade"}                  turmas, alunos, aulas e marcas
+//                                              (e as avaliações, com as notas)
 //   celular → {acao: "chamada", chamada}       grava só as células daquela aula
+//   celular → {acao: "nota", nota}             grava uma nota (aba NOTAS)
 //
 // Substitui o caminho antigo (celular → API do Drive → XLSX inteiro → Drive
 // para desktop → Mestrão): o celular manda poucos KB, a trava do script faz as
@@ -25,6 +28,13 @@
 const NOMES_DA_ABA = ["FREQÊNCIA", "FREQUÊNCIA", "FREQUENCIA"];
 const MARCAS = ["0", "F", "I", "A", "E", "G", "S", "T", "U", "O", "P"];
 
+// As notas (16/10/2026): a aba AVALIAÇÕES é do Mestrão, a aba NOTAS é do celular.
+// O formato é o mesmo do backup (Mestre.Core/planilha/backup.js, COLUNAS).
+const NOMES_DAS_AVALIACOES = ["AVALIAÇÕES", "AVALIACOES", "AVALIAÇÃO"];
+const NOMES_DAS_NOTAS = ["NOTAS", "NOTA"];
+const COLUNAS_DA_AVALIACAO = ["CHAVE", "TURMA", "DISCIPLINA", "ORDEM", "NOME", "DATA", "INSTRUMENTO", "RECUPERAÇÃO", "NO DIÁRIO"];
+const COLUNAS_DA_NOTA = ["CHAVE", "TURMA", "DISCIPLINA", "ORDEM", "ALUNO", "NOTA"];
+
 function doPost(e) {
   let pedido;
   try {
@@ -36,7 +46,7 @@ function doPost(e) {
     return responder({ ok: false, erro: "Código de conexão errado. Copie de novo o código da planilha." });
   }
 
-  const escreve = pedido.acao === "gerar" || pedido.acao === "chamada";
+  const escreve = pedido.acao === "gerar" || pedido.acao === "chamada" || pedido.acao === "nota";
   const trava = LockService.getScriptLock();
   if (escreve && !trava.tryLock(25000)) {
     return responder({ ok: false, erro: "A planilha está ocupada com outra gravação. Tente de novo." });
@@ -46,6 +56,7 @@ function doPost(e) {
     if (pedido.acao === "ler") return responder(ler(livro, pedido.desde));
     if (pedido.acao === "grade") return responder(grade(livro));
     if (pedido.acao === "chamada") return responder(gravarChamada(livro, pedido.chamada));
+    if (pedido.acao === "nota") return responder(gravarNota(livro, pedido.nota));
     if (pedido.acao === "gerar") return responder(gerar(livro, pedido.abas, pedido.periodo));
     return responder({ ok: false, erro: `Ação desconhecida: ${pedido.acao}` });
   } catch (erro) {
@@ -130,13 +141,18 @@ function ler(livro, desde) {
     return { ok: true, versao, mudou: false };
   }
   const aba = acharAba(livro);
+  const avaliacoes = acharAbaPorNomes(livro, NOMES_DAS_AVALIACOES);
+  const notas = acharAbaPorNomes(livro, NOMES_DAS_NOTAS);
   return {
     ok: true,
     versao,
     mudou: true,
     aba: aba ? aba.getName() : null,
     abas_disponiveis: livro.getSheets().map((a) => a.getName()),
-    linhas: aba ? linhasDa(livro, aba) : []
+    linhas: aba ? linhasDa(livro, aba) : [],
+    // As duas abas do celular, cruas, para o Mestrão lançar as notas (16/10/2026).
+    avaliacoes: avaliacoes ? linhasDa(livro, avaliacoes) : [],
+    notas: notas ? linhasDa(livro, notas) : []
   };
 }
 
@@ -144,7 +160,8 @@ function ler(livro, desde) {
 function grade(livro) {
   const aba = acharAba(livro);
   const periodo = PropertiesService.getDocumentProperties().getProperty("PERIODO");
-  if (!aba) return { ok: true, versao: versaoAtual(), periodo: periodo ? JSON.parse(periodo) : null, turmas: [] };
+  const avaliacoes = lerAvaliacoes(livro);
+  if (!aba) return { ok: true, versao: versaoAtual(), periodo: periodo ? JSON.parse(periodo) : null, turmas: [], avaliacoes };
   const linhas = linhasDa(livro, aba);
   const turmas = lerTurmas(linhas).map((turma) => ({
     nome: turma.nome,
@@ -158,7 +175,7 @@ function grade(livro) {
       marcas: turma.alunos.map((aluno) => marcaDe(linhas[aluno.linha][coluna.coluna]))
     }))
   }));
-  return { ok: true, versao: versaoAtual(), periodo: periodo ? JSON.parse(periodo) : null, turmas };
+  return { ok: true, versao: versaoAtual(), periodo: periodo ? JSON.parse(periodo) : null, turmas, avaliacoes };
 }
 
 /**
@@ -299,6 +316,140 @@ function gravarChamada(livro, chamada) {
   };
 }
 
+// ── As notas (16/10/2026) ───────────────────────────────────────────────────
+//
+// Duas abas, no formato do backup (Mestre.Core/planilha/backup.js):
+//
+//   AVALIAÇÕES: CHAVE | TURMA | DISCIPLINA | ORDEM | NOME | DATA | INSTRUMENTO | RECUPERAÇÃO | NO DIÁRIO
+//   NOTAS:      CHAVE | TURMA | DISCIPLINA | ORDEM | ALUNO | NOTA
+//
+// com CHAVE = "turma|disciplina|ordem". A AVALIAÇÕES é do Mestrão; a NOTAS é do
+// celular, e por isso o gerar não a toca — a nota digitada no aparelho não pode
+// sumir quando a planilha do período é gerada de novo.
+
+/** As avaliações da planilha, cada uma com as notas que o celular já gravou. */
+function lerAvaliacoes(livro) {
+  const aba = acharAbaPorNomes(livro, NOMES_DAS_AVALIACOES);
+  if (!aba) return [];
+  const notas = notasPorChave(livro);
+  return linhasDa(livro, aba)
+    .filter((linha) => texto(linha[0]) && !ehCabecalhoDeColunas(linha, COLUNAS_DA_AVALIACAO))
+    .map((linha) => ({
+      chave: texto(linha[0]),
+      turma: texto(linha[1]),
+      disciplina: texto(linha[2]),
+      ordem: Number(linha[3]) || 1,
+      nome: texto(linha[4]),
+      data: texto(linha[5]),
+      instrumento: texto(linha[6]),
+      recuperacao: texto(linha[7]),
+      noDiario: normalizado(linha[8]) === "SIM",
+      notas: notas.get(texto(linha[0])) || {}
+    }));
+}
+
+/** As notas gravadas, por avaliação: CHAVE -> { ALUNO: "8,5" }. */
+function notasPorChave(livro) {
+  const porChave = new Map();
+  const aba = acharAbaPorNomes(livro, NOMES_DAS_NOTAS);
+  if (!aba) return porChave;
+  for (const linha of linhasDa(livro, aba)) {
+    const chave = texto(linha[0]);
+    const aluno = texto(linha[4]);
+    if (!chave || !aluno || ehCabecalhoDeColunas(linha, COLUNAS_DA_NOTA)) continue;
+    if (!porChave.has(chave)) porChave.set(chave, {});
+    porChave.get(chave)[aluno] = texto(linha[5]);
+  }
+  return porChave;
+}
+
+/** A aba NOTAS; nasce com o cabeçalho do contrato se ainda não existir. */
+function abaDeNotas(livro) {
+  const achada = acharAbaPorNomes(livro, NOMES_DAS_NOTAS);
+  if (achada) return achada;
+  const nova = livro.insertSheet(NOMES_DAS_NOTAS[0]);
+  nova.getRange(1, 1, 1, COLUNAS_DA_NOTA.length).setValues([COLUNAS_DA_NOTA]);
+  return nova;
+}
+
+/**
+ * A régua da nota, a mesma do Mestre.Core (notas.js): 0 a 10, uma casa decimal.
+ * Vazio é pedido de apagar — nota em branco é aluno ainda sem avaliação, e não se
+ * escreve zero por ele.
+ */
+function notaDaRegua(escrita) {
+  const cru = texto(escrita).replace(",", ".");
+  if (cru === "") return "";
+  if (!/^\d{1,2}(\.\d)?$/.test(cru)) {
+    throw new Error('Nota inválida: "' + escrita + '". Use um número de 0 a 10, com uma casa decimal — 8 ou 8,5.');
+  }
+  const valor = Number(cru);
+  if (valor < 0 || valor > 10) {
+    throw new Error('Nota fora da régua: "' + escrita + '". O SIAEP aceita de 0 a 10.');
+  }
+  return cru.replace(".", ",");
+}
+
+/**
+ * O celular grava uma nota.
+ *
+ * Mesmas travas da chamada: a avaliação tem que existir, a régua é conferida
+ * antes de escrever, e a confirmação é da planilha — relê a célula que gravou.
+ * Avaliação já no diário não aceita nota: o diário é a fonte, e quem muda é o
+ * Mestrão (NO DIÁRIO = SIM, a mesma ideia da aula validada pelo GAF).
+ */
+function gravarNota(livro, nota) {
+  if (!nota || !texto(nota.chave) || !texto(nota.aluno)) throw new Error("Nota incompleta.");
+  const chave = texto(nota.chave);
+  const aluno = texto(nota.aluno);
+  const avaliacao = lerAvaliacoes(livro).find((a) => a.chave === chave);
+  if (!avaliacao) return recusa("A avaliação " + chave + " não está mais na planilha.");
+  if (avaliacao.noDiario) {
+    return recusa("A nota de " + (avaliacao.nome || "avaliação") + " já está no diário do SIAEP — quem muda agora é o Mestrão.");
+  }
+  const valor = notaDaRegua(nota.valor);
+
+  const aba = abaDeNotas(livro);
+  const linhas = linhasDa(livro, aba);
+  const procurado = normalizado(aluno);
+  let onde = -1;
+  for (let i = 0; i < linhas.length; i++) {
+    if (ehCabecalhoDeColunas(linhas[i] || [], COLUNAS_DA_NOTA)) continue;
+    if (texto(linhas[i][0]) === chave && normalizado(linhas[i][4]) === procurado) { onde = i; break; }
+  }
+  const nasceAgora = onde === -1;
+  if (nasceAgora) onde = linhas.length;
+
+  if (nasceAgora) {
+    // A linha inteira: a nota precisa de chave e dono no arquivo.
+    const cabeca = aba.getRange(onde + 1, 1, 1, 5);
+    cabeca.setNumberFormat("@");
+    cabeca.setValues([[chave, avaliacao.turma, avaliacao.disciplina, String(avaliacao.ordem), aluno]]);
+  }
+  const celula = aba.getRange(onde + 1, 6);
+  celula.setNumberFormat("@");
+  celula.setValues([[valor]]);
+  SpreadsheetApp.flush();
+
+  // A confirmação é da planilha, não do pedido.
+  const relida = texto(aba.getRange(onde + 1, 6).getValues()[0][0]);
+  if (relida !== valor) return recusa("A planilha não guardou a nota de " + aluno + ". Tente enviar de novo.");
+
+  return {
+    ok: true,
+    versao: novaVersao(),
+    chave,
+    aluno,
+    valor: relida,
+    conferidaEm: new Date().toISOString()
+  };
+}
+
+/** Um cabeçalho confere quando as duas primeiras colunas são as do contrato. */
+function ehCabecalhoDeColunas(linha, colunas) {
+  return texto(linha[0]).toUpperCase() === colunas[0] && texto(linha[1]).toUpperCase() === colunas[1];
+}
+
 // ── Ler as linhas ───────────────────────────────────────────────────────────
 
 function ehCabecalho(linha) {
@@ -407,6 +558,13 @@ function ehAbaDeFrequencia(nome) {
 
 function acharAba(livro) {
   return livro.getSheets().find((aba) => ehAbaDeFrequencia(aba.getName())) || null;
+}
+
+/** Acha uma aba por qualquer um dos nomes aceitos (com ou sem acento). */
+function acharAbaPorNomes(livro, nomes) {
+  return livro.getSheets().find((aba) =>
+    nomes.some((nome) => normalizadoSemAcento(nome) === normalizadoSemAcento(aba.getName()))
+  ) || null;
 }
 
 function linhasDa(livro, aba) {

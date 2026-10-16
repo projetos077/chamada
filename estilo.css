@@ -291,3 +291,24 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
 /* 3. A turma conta os três estados. */
 .cartao-turma em.lancar { color: var(--laranja); }
 .cartao-turma em.lancar::before { content: "◔ "; }
+/* 4. As notas (16/10/2026) — o mesmo desenho, e a nota no lugar do F e do J. */
+.avaliacoes { display: flex; gap: 8px; overflow-x: auto; padding: 10px 18px 0 16px; }
+.avaliacoes button {
+  flex: none; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 900; color: var(--nanquim);
+  background: #fff; border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
+}
+.avaliacoes button.ativa { background: var(--amarelo); }
+.aluno .nota { width: 64px; font-size: 14px; }
+.aluno .nota.vazia { color: var(--fraca); }
+.visor-nota {
+  margin-top: 10px; padding: 10px; text-align: center; font-size: 24px; font-weight: 900;
+  background: var(--postit); border: 2px dashed var(--nanquim); border-radius: 10px;
+}
+.teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.teclado button {
+  padding: 14px 0; border-radius: 10px; font-size: 19px; font-weight: 900; color: var(--nanquim);
+  background: #fff; border: 2px solid var(--nanquim); box-shadow: 2px 2px 0 var(--nanquim);
+}
+.teclado button.sec { font-size: 15px; }
+.teclado button.guarda { grid-column: span 2; font-size: 15px; background: var(--amarelo); }
+

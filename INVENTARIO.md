@@ -15,6 +15,10 @@
 | Chamada | `#tela-chamada` | toque numa data | alunos em ordem alfabética, F e J, e o botão de enviar |
 | Folha do motivo | `#folha-motivo` | botão J | os nove códigos da Mestre 1.0.57 mais “Presente” |
 | Folha do envio | `#folha-envio` | ao enviar | recibo, fila ou recusa |
+| Notas | `#tela-notas` | aba Notas (só com avaliações na planilha) | os cartões das turmas, com "N avaliações a lançar" |
+| Notas · disciplinas | `#tela-nota-turma` | toque no cartão | uma linha por disciplina da turma |
+| Notas · alunos | `#tela-nota-disciplina` | toque na disciplina | a avaliação escolhida no alto, os alunos e a nota de cada um |
+| Folha da nota | `#folha-nota` | toque no campo da nota | o teclado numérico (0 a 10, vírgula, Limpar, Guardar nota) |
 | Folha de Ajustes | `#folha-ajustes` | ⚙︎ | tema, horários juntos/separados, buscar agora, trocar o código |
 
 O menu inferior (`#abas`) fica à vista em Hoje, Frequência e Turma; **some na chamada**
@@ -36,9 +40,10 @@ O menu inferior (`#abas`) fica à vista em Hoje, Frequência e Turma; **some na 
 | Chave | O que é |
 |---|---|
 | `chamada:conexao` | `{url, chave}` do carteiro |
-| `chamada:grade` | a última grade recebida: turmas, alunos, aulas, marcas e período |
+| `chamada:grade` | a última grade recebida: turmas, alunos, aulas, marcas, período e avaliações com as notas |
 | `chamada:conferida` | quando a planilha foi conferida pela última vez |
 | `chamada:fila` | chamadas que ainda não saíram |
+| `chamada:fila-notas` | notas que ainda não saíram |
 | `chamada:recusas` | chamadas que a planilha recusou |
 | `chamada:recibos` | o recibo de cada chamada enviada |
 | `chamada:rascunho:<aula>` | só os alunos que ele tocou, por nome |
@@ -70,11 +75,13 @@ isso na folha do envio e guarda em `chamada:recibos`.
 | ver o que falta preencher no período | aba Frequência (o cartão conta “N a preencher”) |
 | ver o que falta lançar no SIAEP | idem, mais a linha “N feitas, falta lançar no SIAEP” |
 | mandar o que ficou na fila | toque no chip |
+| lançar as notas de uma avaliação | Notas → turma → disciplina → toque na nota → teclado → Guardar nota |
 | ver o recibo de uma chamada antiga | não há tela de recibos: só a folha no momento do envio |
 
 ## O que o PWA não faz — e é de propósito
 
 - **não fala com o SIAEP**: o envio da frequência é do Mestrão, com conferência;
-- **não escreve nota**: a aba Notas é a próxima funcionalidade, e exige contrato novo no carteiro;
+- **não envia nota ao SIAEP**: a nota vai para a Planilha Google pela fila do aparelho, e
+  quem lança no diário é o Mestrão, com conferência;
 - **não pede login**: a chave do carteiro é a porta;
 - **não guarda nome de aluno no app publicado**: a grade chega do carteiro na hora.

@@ -19,7 +19,8 @@ function planilhaDeMentira() {
       getLastRow: () => dados.length,
       clearContents: () => { dados = []; },
       getDataRange: () => aba.getRange(1, 1, dados.length, Math.max(0, ...dados.map((l) => l.length))),
-      getRange: (linha, coluna, altura, largura) => ({
+      // `getRange(linha, coluna)` é uma célula só, como no Apps Script.
+      getRange: (linha, coluna, altura = 1, largura = 1) => ({
         setNumberFormat() {},
         getValues: () => Array.from({ length: altura }, (_, i) =>
           Array.from({ length: largura }, (_, j) => dados[linha - 1 + i]?.[coluna - 1 + j] ?? "")),

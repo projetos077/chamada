@@ -28,8 +28,8 @@ const coluna = (data, horario, marcas, extra = {}) => ({
 });
 
 /** A grade que o aparelho tem guardada: uma turma, as aulas que o teste montar. */
-const gradeCom = (aulas, periodo = {}, alunos = ["ANA GABRIELA SOUSA", "CARLOS DANIEL LIMA"]) =>
-  ({ ok: true, versao: 1, periodo, turmas: [{ nome: TURMA, alunos, aulas }] });
+const gradeCom = (aulas, periodo = {}, alunos = ["ANA GABRIELA SOUSA", "CARLOS DANIEL LIMA"], avaliacoes = []) =>
+  ({ ok: true, versao: 1, periodo, turmas: [{ nome: TURMA, alunos, aulas }], avaliacoes });
 
 /** Abre o app.js como o professor abre o app: com a grade já no aparelho. */
 function abrir(grade, { fila = [] } = {}) {
@@ -63,8 +63,8 @@ const diaFeito = (data = "18/09/2026") => [
   coluna(data, 2, ["0", "0"])
 ];
 
-test("o menu inferior é Hoje e Frequência", () => {
-  assert.deepEqual(abasDoHtml(), ["hoje", "frequencia"]);
+test("o menu inferior é Hoje, Frequência e Notas", () => {
+  assert.deepEqual(abasDoHtml(), ["hoje", "frequencia", "notas"]);
   const nav = HTML_DO_APP.match(/<nav id="abas"[\s\S]*?<\/nav>/)[0];
   assert.match(nav, /<\/svg>Hoje</);
   assert.match(nav, /<\/svg>Frequência</);
@@ -166,4 +166,119 @@ test("tocar na faixa leva às turmas", () => {
   app.clicar(faixa);
   assert.match(app.porId.get("turmas-conteudo").innerHTML, /cartao-turma/);
   assert.equal(app.porId.get("abas").hidden, false);
+});
+
+// ── As notas (Chamada 21, 16/10/2026) ───────────────────────────────────────
+//
+// Turmas → disciplinas → alunos, no mesmo desenho da Frequência. A nota é de uma
+// avaliação, e quem a envia ao SIAEP é o Mestrão: aqui ela só chega à planilha.
+
+const AVALIACOES = (noDiario = false) => [
+  { chave: TURMA + "|FISICA|1", turma: TURMA, disciplina: "FISICA", ordem: 1, nome: "1ª avaliação", data: "14/08/2026", instrumento: "Prova", recuperacao: "", noDiario, notas: {} },
+  { chave: TURMA + "|FISICA|2", turma: TURMA, disciplina: "FISICA", ordem: 2, nome: "2ª avaliação", data: "11/09/2026", instrumento: "Trabalho", recuperacao: "", noDiario, notas: { "ANA GABRIELA SOUSA": "8,5" } },
+  { chave: TURMA + "|EDUCACAO DIGITAL(IS)|1", turma: TURMA, disciplina: "EDUCACAO DIGITAL(IS)", ordem: 1, nome: "1ª avaliação", data: "20/08/2026", instrumento: "Projeto", recuperacao: "", noDiario, notas: {} }
+];
+
+test("a aba Notas só aparece quando a planilha tem avaliações", () => {
+  const sem = abrir(gradeCom(diaFeito()));
+  assert.equal(sem.porId.get("aba-notas").hidden, true, "sem avaliações não há o que lançar");
+
+  const com = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  assert.equal(com.porId.get("aba-notas").hidden, false);
+});
+
+test("Notas · turmas: o cartão conta as avaliações a lançar", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotas();
+  const html = app.porId.get("notas-conteudo").innerHTML;
+  assert.match(html, /data-nota-turma="26PMI-INT-300"/);
+  assert.match(html, /3 avaliações a lançar/);
+  assert.match(html, /Física · Educação Digital/);
+});
+
+test("Notas · turmas: com tudo no diário, o cartão diz Todas lançadas", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES(true)));
+  app.contexto.abrirNotas();
+  assert.match(app.porId.get("notas-conteudo").innerHTML, /✓ Todas lançadas/);
+});
+
+test("Notas · disciplinas: uma linha por disciplina, com as avaliações dela", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotaTurma(TURMA);
+  const html = app.porId.get("nota-disciplinas").innerHTML;
+  assert.match(html, /data-nota-disciplina="FISICA"/);
+  assert.match(html, /data-nota-disciplina="EDUCACAO DIGITAL\(IS\)"/);
+  assert.match(html, /2 avaliações · Prova, Trabalho/);
+  assert.match(app.porId.get("nota-turma-resumo").textContent, /2 alunos · 3 avaliações/);
+});
+
+test("Notas · alunos: a nota que já existe, o campo vazio e as contas", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  // Abre na 1ª avaliação, que ainda não tem nota de ninguém.
+  assert.match(app.porId.get("nota-avaliacao").textContent, /Física · 1ª avaliação · 14\/08\/2026 · Prova/);
+  assert.equal(app.porId.get("nota-com").textContent, 0);
+  // A faixa das avaliações troca para a 2ª, que já tem a nota de uma aluna.
+  const faixa = { tagName: "BUTTON", dataset: { escolherAvaliacao: TURMA + "|FISICA|2" }, hasAttribute: () => false, closest: (s) => (s === "button" ? faixa : null) };
+  app.clicar(faixa);
+  const html = app.porId.get("nota-alunos").innerHTML;
+  assert.match(html, /ANA GABRIELA SOUSA/);
+  assert.match(html, /class="bt nota "[^>]*>8,5<\/button>/);
+  assert.match(html, /class="bt nota vazia"[^>]*>—<\/button>/);
+  assert.equal(app.porId.get("nota-com").textContent, 1);
+  assert.equal(app.porId.get("nota-sem").textContent, 1);
+  assert.equal(app.porId.get("nota-media").textContent, "8,5");
+  assert.match(app.porId.get("nota-avaliacao").textContent, /Física · 2ª avaliação · 11\/09\/2026 · Trabalho/);
+});
+
+test("avaliação já no diário: o campo fica travado e a tela diz por quê", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES(true)));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  assert.match(app.porId.get("nota-alunos").innerHTML, /disabled/);
+  assert.equal(app.porId.get("nota-aviso").hidden, false);
+  assert.match(app.porId.get("nota-aviso").textContent, /já está no diário/);
+});
+
+test("tocar no campo da nota abre o teclado", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  const campo = { tagName: "BUTTON", dataset: { nota: "1" }, hasAttribute: () => false, closest: (s) => (s === "button" ? campo : null) };
+  app.clicar(campo);
+  assert.equal(app.porId.get("folha-nota").open, true);
+  assert.equal(app.porId.get("nota-aluno").textContent, "CARLOS DANIEL LIMA");
+});
+
+test("o teclado digita a nota e Guardar põe na fila do aparelho", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  app.contexto.abrirTeclado(1);
+  assert.equal(app.porId.get("nota-visor").textContent, "—");
+  app.contexto.digitar("7");
+  app.contexto.digitar(",");
+  app.contexto.digitar("5");
+  assert.equal(app.porId.get("nota-visor").textContent, "7,5");
+  app.contexto.guardarNota();
+
+  const fila = JSON.parse(app.localStorage.getItem("chamada:fila-notas"));
+  assert.equal(fila.length, 1);
+  assert.deepEqual([fila[0].chave, fila[0].aluno, fila[0].valor], [TURMA + "|FISICA|1", "CARLOS DANIEL LIMA", "7,5"]);
+  assert.equal(fila[0].antes, "", "a nota anterior viaja com o item, para voltar se a planilha recusar");
+  // A tela mostra o que ele digitou; a planilha confirma — ou devolve — depois.
+  assert.match(app.porId.get("nota-alunos").innerHTML, />7,5<\/button>/);
+});
+
+test("nota fora da régua não entra na fila", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  app.contexto.abrirTeclado(0);
+  app.contexto.digitar("1");
+  app.contexto.digitar("1");
+  app.contexto.guardarNota();
+  assert.equal(app.localStorage.getItem("chamada:fila-notas"), null);
+  assert.equal(app.porId.get("nota-alunos").innerHTML.includes(">11</button>"), false);
 });

@@ -45,6 +45,19 @@ etapa travava. Agora:
 - Gerar a planilha de novo no Mestrão **não apaga** a chamada feita aqui: o
   carteiro só preenche o que está vazio.
 
+## Versão 21 (16/10/2026) — as notas no celular
+
+- A aba **Notas** no menu de baixo: **turmas → disciplinas → alunos**, no mesmo estilo da
+  Frequência. No fim, a lista de alunos com a nota no lugar do F e do J, e o **teclado
+  numérico** (0 a 10, vírgula, Limpar, Guardar nota).
+- A nota é de uma **avaliação** (1ª, 2ª, Recuperação), escolhida no alto da disciplina.
+  Avaliação que já está no diário do SIAEP abre travada, só para ver.
+- **Guardar não envia ao SIAEP**: a nota entra na fila do aparelho e vai para a Planilha
+  Google; quem lança no diário é o Mestrão, com conferência.
+- A aba só aparece quando a planilha tem avaliações — o Mestrão é quem gera a aba
+  `AVALIAÇÕES` (`CONTRATOS.md` §1). **Ao atualizar: publique uma versão nova do Apps
+  Script**, porque o `carteiro/Codigo.gs` mudou.
+
 ## Versão 20 (16/10/2026) — os três estados
 
 - A chamada feita aqui e ainda **não lançada no SIAEP** passa a dizer **“Feita · falta

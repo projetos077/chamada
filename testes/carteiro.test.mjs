@@ -131,6 +131,127 @@ test("o período volta inteiro para o celular, com lancadas e anterior", () => {
   assert.deepEqual(c.post({ acao: "grade" }).periodo, periodo);
 });
 
+
+// ── As notas (CONTRATOS.md §1, 16/10/2026) ──────────────────────────────────
+//
+// O formato é o do backup do Mestrão (Mestre.Core/planilha/backup.js, COLUNAS):
+//   AVALIAÇÕES: CHAVE | TURMA | DISCIPLINA | ORDEM | NOME | DATA | INSTRUMENTO | RECUPERAÇÃO | NO DIÁRIO
+//   NOTAS:      CHAVE | TURMA | DISCIPLINA | ORDEM | ALUNO | NOTA
+// A aba AVALIAÇÕES é do Mestrão; a NOTAS é do celular, e o gerar não a apaga.
+
+const AVALIACOES = (noDiario = "NÃO") => [
+  ["CHAVE", "TURMA", "DISCIPLINA", "ORDEM", "NOME", "DATA", "INSTRUMENTO", "RECUPERAÇÃO", "NO DIÁRIO"],
+  ["26PMI-INT-300|FISICA|1", "26PMI-INT-300", "FISICA", 1, "1ª avaliação", "14/08/2026", "Prova", "", "NÃO"],
+  ["26PMI-INT-300|FISICA|2", "26PMI-INT-300", "FISICA", 2, "2ª avaliação", "11/09/2026", "Trabalho", "", noDiario]
+];
+const gerarComAvaliacoes = (c, noDiario = "NÃO") => c.post({
+  acao: "gerar",
+  abas: [
+    { nome: "INSTRUÇÕES", linhas: [["Leia-me"]] },
+    { nome: "FREQÊNCIA", linhas: FREQUENCIA() },
+    { nome: "AVALIAÇÕES", linhas: AVALIACOES(noDiario) }
+  ],
+  periodo: { momento: "4" }
+});
+const notas = (c) => c.livro.getSheetByName("NOTAS")?.dados() ?? [];
+const nota = (chave, aluno, valor) => ({ acao: "nota", nota: { chave, aluno, valor } });
+
+test("sem a aba AVALIAÇÕES as avaliações vêm vazias (o celular não mostra Notas)", () => {
+  const c = carteiro();
+  gerar(c, FREQUENCIA());
+  assert.deepEqual(c.post({ acao: "grade" }).avaliacoes, []);
+});
+
+test("o celular recebe as avaliações, com as notas que ele já gravou", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  const antes = c.post({ acao: "grade" }).avaliacoes;
+  assert.deepEqual(antes.map((a) => [a.chave, a.disciplina, a.ordem, a.noDiario]), [
+    ["26PMI-INT-300|FISICA|1", "FISICA", 1, false],
+    ["26PMI-INT-300|FISICA|2", "FISICA", 2, false]
+  ]);
+  assert.deepEqual(antes[0].notas, {});
+
+  assert.equal(c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", "8,5")).ok, true);
+  const depois = c.post({ acao: "grade" }).avaliacoes[0];
+  assert.deepEqual(depois.notas, { "ANA GABRIELA SOUSA": "8,5" });
+});
+
+test("a nota entra na aba NOTAS, que nasce com o cabeçalho do contrato", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  const r = c.post(nota("26PMI-INT-300|FISICA|1", "CARLOS DANIEL LIMA", "7"));
+  assert.equal(r.ok, true, r.erro);
+  assert.equal(r.valor, "7");
+  assert.deepEqual(notas(c), [
+    ["CHAVE", "TURMA", "DISCIPLINA", "ORDEM", "ALUNO", "NOTA"],
+    ["26PMI-INT-300|FISICA|1", "26PMI-INT-300", "FISICA", "1", "CARLOS DANIEL LIMA", "7"]
+  ]);
+});
+
+test("corrigir a mesma nota escreve na mesma linha", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", "6"));
+  c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", "9,5"));
+  assert.equal(notas(c).length, 2, "cabeçalho + uma linha");
+  assert.equal(notas(c)[1][5], "9,5");
+});
+
+test("nota vazia apaga a nota do aluno", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", "8,5"));
+  const r = c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", ""));
+  assert.equal(r.ok, true, r.erro);
+  assert.equal(notas(c)[1][5], "");
+});
+
+test("nota fora da régua é recusada e nada é gravado", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  for (const valor of ["11", "8,55", "abc", "-1", "10,5"]) {
+    const r = c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", valor));
+    assert.equal(r.ok, false, "aceitou " + valor);
+    assert.match(r.erro, /Nota/);
+  }
+  assert.equal(c.livro.getSheetByName("NOTAS"), null, "a aba nem nasceu");
+});
+
+test("avaliação que não está na planilha é recusada", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  const r = c.post(nota("26PMI-INT-300|FISICA|9", "ANA GABRIELA SOUSA", "8"));
+  assert.equal(r.ok, false);
+  assert.match(r.erro, /não está mais na planilha/);
+});
+
+test("avaliação já no diário não aceita nota: quem muda é o Mestrão", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c, "SIM");
+  const r = c.post(nota("26PMI-INT-300|FISICA|2", "ANA GABRIELA SOUSA", "8"));
+  assert.equal(r.ok, false);
+  assert.match(r.erro, /já está no diário/);
+});
+
+test("gerar de novo não apaga as notas do celular", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", "8,5"));
+  const r = gerarComAvaliacoes(c);
+  assert.equal(r.ok, true, r.erro);
+  assert.equal(c.post({ acao: "grade" }).avaliacoes[0].notas["ANA GABRIELA SOUSA"], "8,5");
+});
+
+test("o Mestrão lê as duas abas pelo ler", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", "8,5"));
+  const r = c.post({ acao: "ler" });
+  assert.equal(r.avaliacoes[0][0], "CHAVE");
+  assert.deepEqual(r.notas[1].slice(0, 2).concat(r.notas[1][5]), ["26PMI-INT-300|FISICA|1", "26PMI-INT-300", "8,5"]);
+});
+
 test("ler devolve as linhas para o Mestrão, e nada quando a versão não mudou", () => {
   const c = carteiro();
   const { versao } = gerar(c, FREQUENCIA());

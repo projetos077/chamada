@@ -1,4 +1,4 @@
-// Chamada 20 — o celular faz a chamada, o carteiro grava na Planilha Google.
+// Chamada 21 — o celular faz a chamada e as notas; o carteiro grava na Planilha Google.
 //
 // Até a versão 15 o celular baixava o XLSX inteiro do Drive, encaixava a
 // chamada e subia o arquivo de volta, com um login do Google que vencia a cada
@@ -16,13 +16,20 @@
 // não entrou no diário passa a dizer "Feita · falta lançar" em vez de "✓ Feita".
 // Eram dois estados mostrados como um só, e foi assim que 48 colunas do 3º
 // período pareceram lançadas quando só estavam preenchidas no celular.
+//
+// Chamada 21 (16/10/2026): a aba **Notas** — turmas → disciplinas → alunos, com o
+// teclado numérico e a nota no lugar do F e do J. A nota é de uma avaliação
+// (`turma|disciplina|ordem`), e quem a envia ao SIAEP continua sendo o Mestrão:
+// aqui ela só chega à planilha, pela mesma fila da chamada. A aba só aparece
+// quando a planilha tem a aba AVALIAÇÕES (CONTRATOS.md §1).
 
-const VERSAO = "20";
+const VERSAO = "21";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
   conferida: "chamada:conferida",
   fila: "chamada:fila",
+  filaNotas: "chamada:fila-notas",
   recusas: "chamada:recusas",
   recibos: "chamada:recibos",
   modo: "mestre:horarios",
@@ -63,10 +70,17 @@ let conexao = lido(CHAVES.conexao, null);
 let grade = lido(CHAVES.grade, null);
 let conferidaEm = lido(CHAVES.conferida, 0);
 let fila = lido(CHAVES.fila, []);
+let filaNotas = lido(CHAVES.filaNotas, []);
 let recusas = lido(CHAVES.recusas, []);
 let recibos = lido(CHAVES.recibos, {});
 let aberta = null;
 let turmaAberta = null;
+let turmaDaNota = null;
+let disciplinaDaNota = null;
+let avaliacaoDaNota = null;
+let alunosDaNota = [];
+let notaAluno = -1;
+let notaDigitada = "";
 let alunoDoMotivo = -1;
 let telaAtual = "";
 
@@ -82,12 +96,21 @@ function avisar(texto) {
   avisar.tempo = setTimeout(() => el.classList.remove("mostra"), 3200);
 }
 
+/** Qual aba do menu corresponde à tela: Hoje, Frequência ou Notas. */
+function abaDa(tela) {
+  if (tela === "hoje") return "hoje";
+  return tela.startsWith("nota") ? "notas" : "frequencia";
+}
+
 function mostrar(tela) {
   telaAtual = tela;
   document.querySelectorAll(".tela").forEach((el) => el.classList.toggle("ativa", el.id === `tela-${tela}`));
   // A barra de abas some só na chamada (o botão de enviar mora embaixo) e na conexão.
-  $("abas").hidden = !["hoje", "turmas", "turma"].includes(tela);
-  document.querySelectorAll("[data-aba]").forEach((el) => el.classList.toggle("ativa", el.dataset.aba === (tela === "hoje" ? "hoje" : "frequencia")));
+  $("abas").hidden = !["hoje", "turmas", "turma", "notas", "nota-turma", "nota-disciplina"].includes(tela);
+  // A aba Notas só existe quando a planilha tem avaliações (16/10/2026).
+  const abaNotas = $("aba-notas");
+  if (abaNotas) abaNotas.hidden = !temNotas();
+  document.querySelectorAll("[data-aba]").forEach((el) => el.classList.toggle("ativa", el.dataset.aba === abaDa(tela)));
   window.scrollTo(0, 0);
 }
 
@@ -295,10 +318,13 @@ function desenharChip() {
   if (recusas.length) {
     chip.classList.add("erro");
     texto.textContent = `${recusas.length} chamada${recusas.length > 1 ? "s" : ""} não entr${recusas.length > 1 ? "aram" : "ou"} na planilha`;
-  } else if (fila.length) {
+  } else if (fila.length || filaNotas.length) {
     chip.classList.add("fila");
-    const n = fila.length;
-    texto.textContent = `${n} chamada${n > 1 ? "s" : ""} aguardando envio${navigator.onLine ? " · toque para enviar" : " · sem internet"}`;
+    const partes = [
+      fila.length && `${fila.length} chamada${fila.length > 1 ? "s" : ""}`,
+      filaNotas.length && `${filaNotas.length} nota${filaNotas.length > 1 ? "s" : ""}`
+    ].filter(Boolean);
+    texto.textContent = `${partes.join(" e ")} aguardando envio${navigator.onLine ? " · toque para enviar" : " · sem internet"}`;
   } else if (conferidaEm) {
     chip.classList.add("ok");
     texto.textContent = `Tudo enviado · planilha conferida às ${horaDe(conferidaEm)}`;
@@ -411,6 +437,14 @@ function abrirTurma(nome) {
 function redesenhar() {
   if (telaAtual === "hoje") desenharHoje();
   if (telaAtual === "turmas") desenharTurmas();
+  if (telaAtual === "notas") desenharNotas();
+  if (telaAtual === "nota-turma" && turmaDaNota) desenharNotaTurma();
+  if (telaAtual === "nota-disciplina" && disciplinaDaNota) {
+    // A busca de fundo não pode tirar a lista do lugar onde ele está.
+    const onde = window.scrollY;
+    desenharNotaDisciplina();
+    window.scrollTo(0, onde);
+  }
   if (telaAtual === "turma" && turmaAberta) {
     // A busca de fundo não pode tirar a lista do lugar onde ele está.
     const onde = window.scrollY;
@@ -648,6 +682,53 @@ function esvaziarFila() {
   return esvaziando;
 }
 
+// ── A fila das notas ────────────────────────────────────────────────────────
+//
+// A mesma regra da chamada: a nota entra no aparelho antes de sair e só sai da
+// fila quando a planilha responde. O que a planilha recusar volta ao que ela tem.
+
+let esvaziandoNotas = null;
+
+/** Uma nota da fila. Devolve o que aconteceu; a nota só sai quando o carteiro responde. */
+async function enviarNota(item) {
+  let resposta;
+  try {
+    resposta = await pedir("nota", { nota: { chave: item.chave, aluno: item.aluno, valor: item.valor } });
+  } catch (erro) {
+    avisar("Guardada no celular: " + erro.message + " A nota de " + item.aluno + " vai sozinha depois.");
+    return;
+  }
+  filaNotas = filaNotas.filter((i) => i.id !== item.id);
+  guardar(CHAVES.filaNotas, filaNotas);
+  if (!resposta.ok) {
+    // Não entrou: a tela volta ao que a planilha tinha, para não mostrar nota que não existe.
+    const avaliacao = avaliacoesDoPeriodo().find((a) => a.chave === item.chave);
+    if (avaliacao) {
+      avaliacao.notas = { ...(avaliacao.notas ?? {}) };
+      if (item.antes) avaliacao.notas[item.aluno] = item.antes;
+      else delete avaliacao.notas[item.aluno];
+      guardar(CHAVES.grade, grade);
+    }
+    avisar(resposta.erro);
+    if (telaAtual === "nota-disciplina") desenharNotaAlunos();
+    desenharChip();
+    return;
+  }
+  avisar("Nota de " + item.aluno + " guardada na planilha.");
+  desenharChip();
+}
+
+function esvaziarFilaDeNotas() {
+  if (!conexao || !filaNotas.length) return Promise.resolve();
+  esvaziandoNotas ??= (async () => {
+    for (const item of [...filaNotas]) await enviarNota(item);
+  })().finally(() => {
+    esvaziandoNotas = null;
+    desenharChip();
+  });
+  return esvaziandoNotas;
+}
+
 async function enviar() {
   const botao = $("btn-enviar");
   if (botao.disabled) return;
@@ -718,6 +799,213 @@ function mostrarResultado(aula, resultado) {
   $("folha-envio").showModal();
 }
 
+// ── Notas (16/10/2026) ──────────────────────────────────────────────────────
+//
+// Turmas → disciplinas → alunos, como ele pediu, no mesmo desenho da Frequência:
+// os mesmos cartões, as mesmas linhas, as mesmas contas no cabeçalho. A nota é de
+// uma avaliação (`turma|disciplina|ordem`, CONTRATOS.md §1), e ela se escolhe no
+// alto da disciplina. **Guardar não envia ao SIAEP**: o Mestrão lê a planilha e
+// lança, com conferência.
+
+const avaliacoesDoPeriodo = () => grade?.avaliacoes ?? [];
+const temNotas = () => avaliacoesDoPeriodo().length > 0;
+const avaliacoesDaTurma = (nome) => avaliacoesDoPeriodo().filter((a) => a.turma === nome);
+/** Pronta é a que tem nome, instrumento e data — a mesma régua do Mestre.Core. */
+const pronta = (a) => Boolean(a.nome && a.data && a.instrumento);
+const faltaLancar = (a) => pronta(a) && !a.noDiario;
+const rotuloDaAvaliacao = (a) => a.nome || `${a.ordem}ª avaliação`;
+const plural = (n, um, muitos) => `${n} ${n > 1 ? muitos : um}`;
+
+/** As disciplinas da turma, cada uma com as avaliações dela na ordem do período. */
+function disciplinasDaTurma(nome) {
+  const porDisciplina = new Map();
+  for (const avaliacao of avaliacoesDaTurma(nome)) {
+    if (!porDisciplina.has(avaliacao.disciplina)) porDisciplina.set(avaliacao.disciplina, []);
+    porDisciplina.get(avaliacao.disciplina).push(avaliacao);
+  }
+  return [...porDisciplina.entries()].map(([disciplina, lista]) => ({
+    disciplina,
+    lista: lista.slice().sort((a, b) => a.ordem - b.ordem)
+  }));
+}
+
+/** Notas · turmas: o cartão da Frequência, com a conta das avaliações. */
+function desenharNotas() {
+  const turmas = (grade?.turmas ?? []).filter((turma) => avaliacoesDaTurma(turma.nome).length);
+  $("notas-periodo").textContent = [grade?.periodo?.momento && `${grade.periodo.momento}º período`, turmas.length && `${turmas.length} turmas`].filter(Boolean).join(" · ");
+  if (!turmas.length) {
+    $("notas-conteudo").innerHTML = `<div class="lista" style="margin-top:16px"><p class="vazio">A planilha ainda não tem avaliações — quem gera é o Mestrão.</p></div>`;
+    return;
+  }
+  $("notas-conteudo").innerHTML = `<div class="cartoes">${turmas.map((turma) => {
+    const lista = avaliacoesDaTurma(turma.nome);
+    const lancar = lista.filter(faltaLancar).length;
+    const prontas = lista.filter(pronta);
+    const disciplinas = [...new Set(lista.map((a) => a.disciplina))].map(capitalizar);
+    const situacao = lancar
+      ? `<em>${plural(lancar, "avaliação a lançar", "avaliações a lançar")}</em>`
+      : prontas.length && prontas.every((a) => a.noDiario)
+        ? `<em class="ok">✓ Todas lançadas</em>`
+        : `<em>${plural(lista.length, "avaliação", "avaliações")}</em>`;
+    return `
+      <button class="cartao-turma ${lancar ? "" : "completa"}" data-nota-turma="${escapar(turma.nome)}">
+        <span class="sinal">${lancar || "✓"}</span>
+        <span class="meio"><strong>${escapar(nomeDa(turma))}</strong><span>${escapar([...disciplinas, `${turma.alunos.length} alunos`].join(" · "))}</span>${situacao}</span>
+        <span class="seta">›</span>
+      </button>`;
+  }).join("")}</div>`;
+}
+
+function abrirNotas() {
+  turmaDaNota = null;
+  disciplinaDaNota = null;
+  avaliacaoDaNota = null;
+  desenharNotas();
+  mostrar("notas");
+}
+
+/** Notas · disciplinas: a turma aberta, uma linha por disciplina. */
+function abrirNotaTurma(nome) {
+  const turma = grade?.turmas.find((t) => t.nome === nome);
+  if (!turma) return;
+  turmaDaNota = nome;
+  disciplinaDaNota = null;
+  avaliacaoDaNota = null;
+  desenharNotaTurma();
+  mostrar("nota-turma");
+}
+
+function desenharNotaTurma() {
+  const turma = grade?.turmas.find((t) => t.nome === turmaDaNota);
+  if (!turma) return;
+  const lista = avaliacoesDaTurma(turmaDaNota);
+  const lancar = lista.filter(faltaLancar).length;
+  $("nota-turma-nome").textContent = nomeDa(turma);
+  $("nota-turma-resumo").textContent = [
+    `${turma.alunos.length} alunos`,
+    plural(lista.length, "avaliação", "avaliações"),
+    lancar ? `${lancar} a lançar` : "todas lançadas"
+  ].join(" · ");
+  $("nota-disciplinas").innerHTML = `<div class="lista" style="margin-top:14px">${disciplinasDaTurma(turmaDaNota).map(({ disciplina, lista: daDisciplina }) => {
+    const falta = daDisciplina.filter(faltaLancar).length;
+    const instrumentos = [...new Set(daDisciplina.map((a) => a.instrumento).filter(Boolean))].map(capitalizar);
+    return `
+      <button class="linha" data-nota-disciplina="${escapar(disciplina)}">
+        <span class="sinal">${falta || "✓"}</span>
+        <span class="meio"><strong>${escapar(capitalizar(disciplina))}</strong><span>${escapar([plural(daDisciplina.length, "avaliação", "avaliações"), instrumentos.join(", ")].filter(Boolean).join(" · "))}</span></span>
+        <span class="acao">${falta ? "Lançar" : "Ver"}</span>
+      </button>`;
+  }).join("")}</div>`;
+}
+
+/** Notas · alunos: a avaliação no alto, os alunos embaixo, a nota no lugar do F/J. */
+function abrirNotaDisciplina(disciplina) {
+  disciplinaDaNota = disciplina;
+  const grupo = disciplinasDaTurma(turmaDaNota).find((d) => d.disciplina === disciplina);
+  if (!grupo) return;
+  if (!avaliacaoDaNota || !grupo.lista.some((a) => a.chave === avaliacaoDaNota.chave)) {
+    avaliacaoDaNota = grupo.lista[0];
+  }
+  desenharNotaDisciplina();
+  mostrar("nota-disciplina");
+}
+
+function desenharNotaDisciplina() {
+  const grupo = disciplinasDaTurma(turmaDaNota).find((d) => d.disciplina === disciplinaDaNota);
+  const turma = grade?.turmas.find((t) => t.nome === turmaDaNota);
+  if (!grupo || !turma || !avaliacaoDaNota) return;
+  $("nota-turma-titulo").textContent = nomeDa(turma);
+  $("nota-avaliacao").textContent = [
+    capitalizar(disciplinaDaNota),
+    rotuloDaAvaliacao(avaliacaoDaNota),
+    avaliacaoDaNota.data,
+    avaliacaoDaNota.instrumento && capitalizar(avaliacaoDaNota.instrumento)
+  ].filter(Boolean).join(" · ");
+  $("nota-avaliacoes").innerHTML = grupo.lista.map((a) => `
+    <button type="button" class="${a.chave === avaliacaoDaNota.chave ? "ativa" : ""}" data-escolher-avaliacao="${escapar(a.chave)}">${a.ordem}ª${a.noDiario ? " 🔒" : ""}</button>`).join("");
+  const travada = Boolean(avaliacaoDaNota.noDiario);
+  const aviso = $("nota-aviso");
+  aviso.hidden = !travada;
+  aviso.textContent = travada ? "Esta avaliação já está no diário do SIAEP: só para ver. Quem muda agora é o Mestrão." : "";
+  desenharNotaAlunos();
+}
+
+function desenharNotaAlunos() {
+  alunosDaNota = (grade?.turmas.find((t) => t.nome === turmaDaNota)?.alunos ?? [])
+    .slice()
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const travada = Boolean(avaliacaoDaNota?.noDiario);
+  const notas = avaliacaoDaNota?.notas ?? {};
+  $("nota-alunos").innerHTML = alunosDaNota.map((nome, i) => {
+    const valor = notas[nome] ?? "";
+    return `
+      <div class="aluno">
+        <span class="n">${i + 1}</span>
+        <span class="nome">${escapar(nome)}</span>
+        <button class="bt nota ${valor ? "" : "vazia"}" data-nota="${i}" aria-label="Nota de ${escapar(nome)}" ${travada ? "disabled" : ""}>${valor ? escapar(valor) : "—"}</button>
+      </div>`;
+  }).join("");
+  const comNota = alunosDaNota.filter((nome) => notas[nome]).length;
+  const valores = alunosDaNota
+    .map((nome) => notas[nome])
+    .filter(Boolean)
+    .map((valor) => Number(String(valor).replace(",", ".")))
+    .filter((numero) => !Number.isNaN(numero));
+  $("nota-com").textContent = comNota;
+  $("nota-sem").textContent = alunosDaNota.length - comNota;
+  $("nota-media").textContent = valores.length
+    ? (valores.reduce((soma, numero) => soma + numero, 0) / valores.length).toFixed(1).replace(".", ",")
+    : "—";
+}
+
+// ── O teclado da nota ───────────────────────────────────────────────────────
+
+function abrirTeclado(indice) {
+  const nome = alunosDaNota[indice];
+  if (!nome || !avaliacaoDaNota) return;
+  notaAluno = indice;
+  notaDigitada = avaliacaoDaNota.notas?.[nome] ?? "";
+  $("nota-aluno").textContent = nome;
+  $("nota-visor").textContent = notaDigitada || "—";
+  $("folha-nota").showModal();
+}
+
+function digitar(digito) {
+  if (notaDigitada.length >= 4) return;
+  if (digito === "," && notaDigitada.includes(",")) return;
+  if (digito === "," && !notaDigitada) notaDigitada = "0";
+  notaDigitada += digito;
+  $("nota-visor").textContent = notaDigitada;
+}
+
+function apagarDigito() {
+  notaDigitada = notaDigitada.slice(0, -1);
+  $("nota-visor").textContent = notaDigitada || "—";
+}
+
+/** Guardar põe a nota na fila do aparelho, como a chamada — e não envia ao SIAEP. */
+function guardarNota() {
+  const nome = alunosDaNota[notaAluno];
+  if (!nome || !avaliacaoDaNota) return;
+  const valor = notaDigitada.trim();
+  const numero = valor.replace(",", ".");
+  if (valor !== "" && (!/^\d{1,2}(\.\d)?$/.test(numero) || Number(numero) > 10)) {
+    avisar("Nota inválida: use 0 a 10, com uma casa — 8 ou 8,5.");
+    return;
+  }
+  const antes = avaliacaoDaNota.notas?.[nome] ?? "";
+  const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, chave: avaliacaoDaNota.chave, aluno: nome, valor, antes };
+  filaNotas = [...filaNotas.filter((i) => !(i.chave === item.chave && i.aluno === item.aluno)), item];
+  guardar(CHAVES.filaNotas, filaNotas);
+  // A tela mostra o que ele digitou; a planilha confirma — ou devolve — depois.
+  avaliacaoDaNota.notas = { ...(avaliacaoDaNota.notas ?? {}), [nome]: valor };
+  guardar(CHAVES.grade, grade);
+  $("folha-nota").close();
+  if (telaAtual === "nota-disciplina") desenharNotaAlunos();
+  desenharChip();
+  esvaziarFilaDeNotas();
+}
+
 // ── Conectar ────────────────────────────────────────────────────────────────
 
 function lerCodigo(texto) {
@@ -766,10 +1054,26 @@ document.addEventListener("click", (evento) => {
   if (!alvo) return;
   if (alvo.dataset.aba) {
     if (alvo.dataset.aba === "hoje") voltarParaHoje();
+    else if (alvo.dataset.aba === "notas") abrirNotas();
     else abrirTurmas();
   } else if (alvo.hasAttribute("data-faixa")) abrirTurmas();
   else if (alvo.dataset.aula) abrirChamada(alvo.dataset.aula);
   else if (alvo.dataset.turma) abrirTurma(alvo.dataset.turma);
+  else if (alvo.dataset.notaTurma) abrirNotaTurma(alvo.dataset.notaTurma);
+  else if (alvo.dataset.notaDisciplina) abrirNotaDisciplina(alvo.dataset.notaDisciplina);
+  else if (alvo.dataset.escolherAvaliacao) {
+    const escolhida = avaliacoesDoPeriodo().find((a) => a.chave === alvo.dataset.escolherAvaliacao);
+    if (escolhida) {
+      avaliacaoDaNota = escolhida;
+      desenharNotaDisciplina();
+    }
+  } else if (alvo.dataset.nota !== undefined) abrirTeclado(Number(alvo.dataset.nota));
+  else if (alvo.dataset.digito) digitar(alvo.dataset.digito);
+  else if (alvo.hasAttribute("data-apagar")) apagarDigito();
+  else if (alvo.hasAttribute("data-limpar")) {
+    notaDigitada = "";
+    $("nota-visor").textContent = "—";
+  } else if (alvo.hasAttribute("data-guardar-nota")) guardarNota();
   else if (alvo.dataset.falta) marcar(Number(alvo.dataset.falta), "F");
   else if (alvo.dataset.justificar) abrirMotivos(Number(alvo.dataset.justificar));
   else if (alvo.dataset.motivo) {
@@ -778,6 +1082,8 @@ document.addEventListener("click", (evento) => {
     $("folha-motivo").close();
   } else if (alvo.hasAttribute("data-voltar")) {
     if (telaAtual === "chamada" && turmaAberta) abrirTurma(turmaAberta);
+    else if (telaAtual === "nota-disciplina") abrirNotaTurma(turmaDaNota);
+    else if (telaAtual === "nota-turma") abrirNotas();
     else if (telaAtual === "turma") abrirTurmas();
     else voltarParaHoje();
   } else if (alvo.dataset.proxima) {
@@ -813,6 +1119,7 @@ $("chip").addEventListener("click", () => {
     return;
   }
   esvaziarFila();
+  esvaziarFilaDeNotas();
   atualizarGrade().catch((erro) => avisar(erro.message));
 });
 
@@ -852,6 +1159,7 @@ document.querySelectorAll('input[name="tema"]').forEach((el) => {
 $("btn-atualizar").addEventListener("click", () => {
   $("folha-ajustes").close();
   esvaziarFila();
+  esvaziarFilaDeNotas();
   atualizarGrade().then(() => avisar("Planilha conferida agora.")).catch((erro) => avisar(erro.message));
 });
 $("btn-trocar-codigo").addEventListener("click", () => {
@@ -869,6 +1177,7 @@ $("btn-trocar-codigo").addEventListener("click", () => {
 function sincronizar() {
   if (!conexao) return;
   esvaziarFila();
+  esvaziarFilaDeNotas();
   atualizarGrade().catch(() => desenharChip());
 }
 

@@ -14,10 +14,10 @@ muda só quando ele pedir, e o pedido fica escrito aqui com a data.
 
 ## 1. O menu inferior
 
-- Duas abas hoje: **Hoje** e **Frequência** (`data-aba="hoje"` e `data-aba="frequencia"`).
-  A tela da Frequência continua `#tela-turmas`: o nome de dentro não muda.
-- A aba **Notas** entra quando o carteiro tiver a aba `NOTAS` — decisão dele em
-  16/10/2026; contrato antes do código (`CONTRATOS.md` §1).
+- Três abas: **Hoje**, **Frequência** e **Notas** (`data-aba="hoje"`, `"frequencia"`,
+  `"notas"`). A tela da Frequência continua `#tela-turmas`: o nome de dentro não muda.
+- **A aba Notas só aparece quando a planilha tem avaliações** (aba `AVALIAÇÕES`, 16/10/2026).
+  Sem elas o menu fica com duas abas, e não há tela vazia para ele abrir.
 - A barra fica à vista em Hoje, Frequência e Turma; **some na chamada** (o botão de
   enviar mora embaixo) e na conexão.
 - Trocar de aba **nunca** perde chamada em andamento nem fila: o rascunho é por aula
@@ -26,11 +26,33 @@ muda só quando ele pedir, e o pedido fica escrito aqui com a data.
 
 ## 2. Voltar
 
-- O botão `‹` está em toda tela de dentro: chamada → turma → Frequência → Hoje.
+- O botão `‹` está em toda tela de dentro: chamada → turma → Frequência → Hoje; e
+  alunos (notas) → disciplinas → Notas.
 - O gesto da borda esquerda (C5) **ainda não existe**. Quando entrar: um gesto = uma
   tela; gesto vertical ou curto não navega; com o teclado aberto, o primeiro voltar
   fecha o teclado; e **nunca descarta chamada**. Só se prova em celular físico — no
   desktop não vale como prova.
+
+## 2b. As notas — turmas → disciplinas → alunos (16/10/2026)
+
+O caminho é o que ele pediu: **Notas → turmas → disciplinas → alunos**.
+
+| Toque | Tela | O que mostra |
+|---|---|---|
+| 1 | `#tela-notas` | os cartões das turmas, iguais aos da Frequência, com "N avaliações a lançar" ou "✓ Todas lançadas" |
+| 2 | `#tela-nota-turma` | as **disciplinas** da turma: "2 avaliações · Prova, Trabalho" |
+| 3 | `#tela-nota-disciplina` | a **avaliação escolhida no alto** (1ª, 2ª, 🔒) e os **alunos** embaixo, com a nota no lugar do F e do J |
+| — | `#folha-nota` | o **teclado numérico**: 0 a 10, vírgula, Limpar e Guardar nota |
+
+- A nota é de uma **avaliação** (`turma|disciplina|ordem`), escolhida na faixa do alto;
+  ela abre na 1ª.
+- A régua é a do Mestrão: **0 a 10, uma casa decimal** (`Mestre.Core/notas.js`). Nota
+  vazia é aluno ainda sem avaliação — não se escreve zero por ele.
+- **Avaliação já no diário** (`NO DIÁRIO = SIM`) fica travada, com a frase na tela: só para
+  ver, e quem muda é o Mestrão.
+- **Guardar não envia ao SIAEP.** A nota entra na fila do aparelho
+  (`chamada:fila-notas`) antes de sair, e só sai quando a planilha responde — o envio
+  continua sendo do Mestrão, com conferência.
 
 ## 3. Os estados de uma aula
 
@@ -63,7 +85,8 @@ Vale para toda saída antecipada de um desenho.
 
 ## 5. O que sai do aparelho
 
-- Só a chamada: turma, data, horários e as marcas — poucos KB por POST.
+- Só a chamada (turma, data, horários e as marcas) e a nota de um aluno por vez — poucos
+  KB por POST.
 - A chave do carteiro é a única credencial: **não há login** no celular.
 - Nada de nome de aluno no app publicado: a grade chega do carteiro na hora.
 - A recusa do carteiro é mostrada por inteiro; nunca se resolve conflito sozinho.
@@ -81,7 +104,7 @@ Vale para toda saída antecipada de um desenho.
 
 ## 7. O que ainda não existe
 
-- **Aba Notas** (decidida por ele em 16/10/2026): turmas → avaliações → estudantes, com
-  teclado numérico, no estilo da Frequência. Exige **aba `NOTAS` nova no carteiro** e
-  republicar o Apps Script — contrato antes do código.
 - **Gesto de voltar** (C5) e a **validação em celular físico** (C7).
+- **Uma ação dele, uma vez:** publicar uma versão nova do Apps Script (o `Codigo.gs`
+  mudou com as notas). Sem isso a planilha não conhece a aba `AVALIAÇÕES`, e o celular
+  não mostra a aba Notas.
