@@ -1,4 +1,4 @@
-// Chamada 16 — o celular faz a chamada, o carteiro grava na Planilha Google.
+// Chamada 20 — o celular faz a chamada, o carteiro grava na Planilha Google.
 //
 // Até a versão 15 o celular baixava o XLSX inteiro do Drive, encaixava a
 // chamada e subia o arquivo de volta, com um login do Google que vencia a cada
@@ -10,8 +10,14 @@
 // Nada se perde no caminho: a chamada entra na fila do aparelho **antes** de
 // sair, e só sai da fila quando o carteiro responde. Sem internet, ela fica e
 // vai sozinha depois.
+//
+// Chamada 20 (16/10/2026): o Mestrão manda no `periodo` as aulas que o diário do
+// SIAEP já tem (`lancadas` — CONTRATOS.md §1), e a chamada feita aqui que ainda
+// não entrou no diário passa a dizer "Feita · falta lançar" em vez de "✓ Feita".
+// Eram dois estados mostrados como um só, e foi assim que 48 colunas do 3º
+// período pareceram lançadas quando só estavam preenchidas no celular.
 
-const VERSAO = "19";
+const VERSAO = "20";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -81,7 +87,7 @@ function mostrar(tela) {
   document.querySelectorAll(".tela").forEach((el) => el.classList.toggle("ativa", el.id === `tela-${tela}`));
   // A barra de abas some só na chamada (o botão de enviar mora embaixo) e na conexão.
   $("abas").hidden = !["hoje", "turmas", "turma"].includes(tela);
-  document.querySelectorAll("[data-aba]").forEach((el) => el.classList.toggle("ativa", el.dataset.aba === (tela === "hoje" ? "hoje" : "turmas")));
+  document.querySelectorAll("[data-aba]").forEach((el) => el.classList.toggle("ativa", el.dataset.aba === (tela === "hoje" ? "hoje" : "frequencia")));
   window.scrollTo(0, 0);
 }
 
@@ -127,6 +133,17 @@ function dataPorExtenso() {
 
 const juntos = () => lido(CHAVES.modo, "juntos") !== "separados";
 
+/**
+ * As aulas que o diário do SIAEP já tem, mandadas pelo Mestrão no `periodo`
+ * (CONTRATOS.md §1, `lancadas`: `turma|data|horário`).
+ *
+ * `null` quando a planilha é de antes disso — e aí "feita" continua querendo dizer
+ * "lançada", exatamente como sempre foi. É o que deixa a Chamada 20 abrir uma
+ * planilha gerada pela 19 sem mentir nem mudar de comportamento.
+ */
+const lancadas = () => (Array.isArray(grade?.periodo?.lancadas) ? new Set(grade.periodo.lancadas) : null);
+const chaveDaLancada = (turma, data, horario) => `${turma}|${data}|${horario}`;
+
 function colunaFeita(coluna) {
   const temAusencia = coluna.marcas.some((m) => m && m !== "0");
   const toda = coluna.marcas.length > 0 && coluna.marcas.every((m) => m !== "");
@@ -134,6 +151,7 @@ function colunaFeita(coluna) {
 }
 
 function aulasDa(turma) {
+  const jaLancadas = lancadas();
   const grupos = [];
   const porData = new Map();
   turma.aulas.forEach((coluna, indice) => {
@@ -162,6 +180,8 @@ function aulasDa(turma) {
       disciplina: [...new Set(colunas.map((c) => c.disciplina).filter(Boolean))].join(" e "),
       travada: colunas.every((c) => c.travada),
       feita: colunas.every(colunaFeita),
+      // O diário tem todos os horários desta aula? `null` = a planilha não diz.
+      lancada: jaLancadas ? horarios.every((h) => jaLancadas.has(chaveDaLancada(turma.nome, primeira.data, h))) : null,
       naFila: fila.some((item) => item.aula === chave),
       recusada: recusas.find((item) => item.aula === chave)
     };
@@ -220,6 +240,8 @@ function estadoDa(aula, agora = false) {
   if (aula.recusada) return ["recusada", `<span class="acao">Abrir</span>`];
   if (aula.naFila) return ["", `<span class="fila">◷ Na fila</span>`];
   if (aula.travada) return ["travada", `<span class="fechada">🔒 Validada</span>`];
+  // Feita no celular, e o diário ainda não tem: o terceiro estado (16/10/2026).
+  if (aula.feita && aula.lancada === false) return ["sem-cor", `<span class="falta-lancar">Feita ·<br>falta lançar</span>`];
   if (aula.feita) return ["enviada", `<span class="feita">✓ ${recibo ? `Enviada ${horaDe(recibo.conferidaEm)}` : "Feita"}</span>`];
   return ["", `<span class="acao ${agora ? "agora" : ""}">${agora ? "Fazer agora" : "Fazer"}</span>`];
 }
@@ -253,7 +275,7 @@ function resumoDasMarcas(aula) {
 function linhaDaData(aula, n) {
   const hoje = aula.data === hojeRotulo();
   const [estado, lado] = estadoDa(aula, hoje && aPreencher(aula) && !aula.naFila);
-  const sinal = aula.travada ? "🔒" : aula.feita ? "✓" : n;
+  const sinal = aula.travada ? "🔒" : aula.feita && aula.lancada !== false ? "✓" : n;
   const horarios = aula.horarios.length > 1 ? `${aula.horarios.length} horários` : aula.doDia > 1 ? `${aula.horarios[0]}º horário` : "";
   const sub = aula.recusada
     ? aula.recusada.erro
@@ -289,6 +311,17 @@ function desenharHoje() {
   $("hoje-data").textContent = dataPorExtenso();
   desenharChip();
   const partes = [];
+
+  // A faixa do período que ainda tem chamada feita no celular e não lançada no
+  // diário (16/10/2026). Quem sabe a conta é o Mestrão — `periodo.anterior`; sem
+  // ele, a faixa não existe, como não existia na Chamada 19.
+  const anterior = grade?.periodo?.anterior;
+  if (anterior?.aLancar > 0) {
+    partes.push(`<button class="faixa-anterior" type="button" data-faixa>
+      <span>${escapar(anterior.momento)}º período · ${anterior.aLancar} frequência${anterior.aLancar > 1 ? "s" : ""} a lançar no SIAEP<small>Feitas no celular; o Mestrão ainda não lançou</small></span>
+      <span>›</span>
+    </button>`);
+  }
 
   if (recusas.length) {
     const linhas = recusas.map((item) => {
@@ -330,15 +363,19 @@ function desenharTurmas() {
   $("turmas-conteudo").innerHTML = `<div class="cartoes">${turmas.map((turma) => {
     const aulas = aulasDa(turma);
     const falta = aulas.filter(aPreencher).length;
+    // Feitas no celular que o diário ainda não tem: contam como pendência, e o
+    // cartão não pode dizer "Todas preenchidas" (16/10/2026).
+    const lancar = aulas.filter((aula) => aula.feita && aula.lancada === false).length;
     const deHoje = aulas.some((aula) => aula.data === hoje && aPreencher(aula));
     const disciplinas = [...new Set(turma.aulas.map((c) => c.disciplina).filter(Boolean))].map(capitalizar);
-    const situacao = !falta
+    const situacao = !falta && !lancar
       ? `<em class="ok">✓ Todas preenchidas</em>`
-      : deHoje ? `<em class="hoje">Chamada de hoje a fazer</em>` : `<em>${falta} a preencher</em>`;
+      : deHoje ? `<em class="hoje">Chamada de hoje a fazer</em>` : falta ? `<em>${falta} a preencher</em>` : "";
+    const aLancar = lancar ? `<em class="lancar">${lancar} feita${lancar > 1 ? "s" : ""}, falta lançar no SIAEP</em>` : "";
     return `
-      <button class="cartao-turma ${falta ? "" : "completa"} ${deHoje ? "hoje" : ""}" data-turma="${escapar(turma.nome)}">
-        <span class="sinal">${falta || "✓"}</span>
-        <span class="meio"><strong>${escapar(nomeDa(turma))}</strong><span>${escapar([...disciplinas, `${turma.alunos.length} alunos`].join(" · "))}</span>${situacao}</span>
+      <button class="cartao-turma ${falta || lancar ? "" : "completa"} ${deHoje ? "hoje" : ""}" data-turma="${escapar(turma.nome)}">
+        <span class="sinal">${falta || lancar || "✓"}</span>
+        <span class="meio"><strong>${escapar(nomeDa(turma))}</strong><span>${escapar([...disciplinas, `${turma.alunos.length} alunos`].join(" · "))}</span>${situacao}${aLancar}</span>
         <span class="seta">›</span>
       </button>`;
   }).join("")}</div>`;
@@ -357,7 +394,13 @@ function abrirTurma(nome) {
   const aulas = aulasDa(turma);
   $("turma-nome").textContent = nomeDa(turma);
   const falta = aulas.filter(aPreencher).length;
-  $("turma-resumo").textContent = `${turma.alunos.length} alunos · ${falta ? `${falta} de ${aulas.length} aulas a preencher` : `${aulas.length} aulas, todas preenchidas`}`;
+  const lancar = aulas.filter((aula) => aula.feita && aula.lancada === false).length;
+  const quantasAulas = `${aulas.length} aula${aulas.length > 1 ? "s" : ""}`;
+  $("turma-resumo").textContent = [
+    `${turma.alunos.length} alunos`,
+    falta ? `${falta} de ${quantasAulas} a preencher` : lancar ? quantasAulas : `${quantasAulas}, todas preenchidas`,
+    lancar ? `${lancar} feita${lancar > 1 ? "s" : ""}, falta lançar no SIAEP` : ""
+  ].filter(Boolean).join(" · ");
   $("turma-aulas").innerHTML = `<div class="lista" style="margin-top:14px">${aulas.map((aula, i) => linhaDaData(aula, i + 1)).join("")}</div>`;
   mostrar("turma");
   // Abre em hoje; sem aula hoje, na primeira que falta preencher.
@@ -724,7 +767,8 @@ document.addEventListener("click", (evento) => {
   if (alvo.dataset.aba) {
     if (alvo.dataset.aba === "hoje") voltarParaHoje();
     else abrirTurmas();
-  } else if (alvo.dataset.aula) abrirChamada(alvo.dataset.aula);
+  } else if (alvo.hasAttribute("data-faixa")) abrirTurmas();
+  else if (alvo.dataset.aula) abrirChamada(alvo.dataset.aula);
   else if (alvo.dataset.turma) abrirTurma(alvo.dataset.turma);
   else if (alvo.dataset.falta) marcar(Number(alvo.dataset.falta), "F");
   else if (alvo.dataset.justificar) abrirMotivos(Number(alvo.dataset.justificar));

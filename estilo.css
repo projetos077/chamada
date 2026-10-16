@@ -268,3 +268,26 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
   opacity: 0; transform: translateY(10px); transition: .2s; pointer-events: none;
 }
 #aviso-rapido.mostra { opacity: 1; transform: none; }
+
+/* ── Os acréscimos da Chamada 20 (16/10/2026) ────────────────────────────────
+   Só o que é novo, sobre o CSS real: nada acima mudou. O desenho é o aprovado
+   por ele em referencia/ux-ui/pwa/layout-pwa.html ("só os acréscimos"). */
+
+/* 1. A faixa do período anterior, enquanto houver feita e não lançada. Toca e
+      abre a Frequência; zerou, ela some. */
+.faixa-anterior {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  margin: 14px 18px 0 16px; padding: 11px 14px; text-align: left;
+  background: var(--laranja-fundo); border: 2px dashed var(--laranja); border-radius: 10px;
+  font-size: 13.5px; font-weight: 800; color: var(--laranja);
+}
+.faixa-anterior small { display: block; font-size: 12px; font-weight: 600; color: var(--fraca); margin-top: 2px; }
+
+/* 2. O terceiro estado da aula: feita no celular, e o diário ainda não tem. */
+.linha .falta-lancar { flex: none; font-size: 12.5px; font-weight: 800; color: var(--laranja); text-align: right; line-height: 1.2; }
+.linha.sem-cor { background: var(--laranja-fundo); }
+.linha.sem-cor .sinal { background: var(--laranja); color: #fff; }
+
+/* 3. A turma conta os três estados. */
+.cartao-turma em.lancar { color: var(--laranja); }
+.cartao-turma em.lancar::before { content: "◔ "; }

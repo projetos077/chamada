@@ -45,6 +45,19 @@ etapa travava. Agora:
 - Gerar a planilha de novo no Mestrão **não apaga** a chamada feita aqui: o
   carteiro só preenche o que está vazio.
 
+## Versão 20 (16/10/2026) — os três estados
+
+- A chamada feita aqui e ainda **não lançada no SIAEP** passa a dizer **“Feita · falta
+  lançar”**, em vez de “✓ Feita”. Eram dois estados mostrados como um só, e 48 colunas
+  do 3º período pareceram lançadas quando só estavam preenchidas no celular. Quem sabe
+  a diferença é o Mestrão, que manda no `periodo` a lista das aulas que o diário já tem
+  (`CONTRATOS.md` §1, no repositório do Mestrão).
+- A aba do meio do menu inferior passa a se chamar **Frequência** (era “Turmas”); a tela
+  é exatamente a mesma.
+- No **Hoje**, a faixa do período anterior enquanto houver frequência feita e não
+  lançada. Ela some quando zera.
+- Norma do app: `NORMAS.md`. Inventário do que existe: `INVENTARIO.md`.
+
 ## Preparar a planilha (uma vez, no Mac)
 
 1. Crie uma Planilha Google em branco (ex.: *Chamada Mestrão*).

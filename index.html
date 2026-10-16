@@ -10,7 +10,7 @@
   <title>Chamada</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="estilo.css?v=19">
+  <link rel="stylesheet" href="estilo.css?v=20">
   <!-- O tema antes do primeiro desenho, para não piscar o G2 em quem escolheu outro. -->
   <script>try { const t = JSON.parse(localStorage.getItem("chamada:tema")); if (t) document.documentElement.dataset.tema = t; } catch {}</script>
 </head>
@@ -119,17 +119,19 @@
       <button id="btn-atualizar" class="btn sec" type="button">Buscar a planilha agora</button>
       <button id="btn-trocar-codigo" class="btn sec" type="button">Trocar o código de conexão</button>
       <button class="btn pri" value="fechar">Fechar</button>
-      <p class="versao">Chamada 19</p>
+      <p class="versao">Chamada 20</p>
     </form>
   </dialog>
 
-  <!-- Hoje e Turmas, como na v15: o dia na frente, o período inteiro ao lado. -->
+  <!-- Hoje e Frequência, como na v15: o dia na frente, o período inteiro ao lado.
+       A aba do meio é a mesma tela de sempre (Turmas, por dentro); só o nome que
+       ele lê mudou, a pedido dele em 16/10/2026 — é a frequência que mora ali. -->
   <nav id="abas" class="abas" hidden>
     <button type="button" data-aba="hoje"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Hoje</button>
-    <button type="button" data-aba="turmas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Turmas</button>
+    <button type="button" data-aba="frequencia"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Frequência</button>
   </nav>
 
   <div id="aviso-rapido" role="status"></div>
-  <script src="app.js?v=19"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>

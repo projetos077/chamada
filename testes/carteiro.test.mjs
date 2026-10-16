@@ -111,6 +111,26 @@ test("gerar de novo mantém a chamada do celular e só preenche o vazio", () => 
   assert.deepEqual(aba(c).slice(1, 4).map((l) => l.slice(4)), [["F", "F", ""], ["0", "0", ""], ["0", "0", "F"]]);
 });
 
+// O terceiro estado (CONTRATOS.md §1, 16/10/2026): o Mestrão manda no `periodo` as
+// aulas que o diário já tem, e o celular as recebe de volta — **sem republicar o
+// Apps Script**. Se este teste falhar, o professor teria que colar o código de novo.
+test("o período volta inteiro para o celular, com lancadas e anterior", () => {
+  const c = carteiro();
+  const periodo = {
+    momento: "4",
+    nomes: { "26PMI-INT-300": "ADM-200" },
+    lancadas: ["26PMI-INT-300|13/10/2026|1"],
+    anterior: { momento: "3", aLancar: 12 }
+  };
+  const r = c.post({
+    acao: "gerar",
+    abas: [{ nome: "INSTRUÇÕES", linhas: [["Leia-me"]] }, { nome: "FREQÊNCIA", linhas: FREQUENCIA() }],
+    periodo
+  });
+  assert.equal(r.ok, true, r.erro);
+  assert.deepEqual(c.post({ acao: "grade" }).periodo, periodo);
+});
+
 test("ler devolve as linhas para o Mestrão, e nada quando a versão não mudou", () => {
   const c = carteiro();
   const { versao } = gerar(c, FREQUENCIA());
