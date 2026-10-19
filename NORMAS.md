@@ -16,8 +16,7 @@ muda só quando ele pedir, e o pedido fica escrito aqui com a data.
 
 - Três abas: **Hoje**, **Frequência** e **Notas** (`data-aba="hoje"`, `"frequencia"`,
   `"notas"`). A tela da Frequência continua `#tela-turmas`: o nome de dentro não muda.
-- **A aba Notas só aparece quando a planilha tem avaliações** (aba `AVALIAÇÕES`, 16/10/2026).
-  Sem elas o menu fica com duas abas, e não há tela vazia para ele abrir.
+- **A aba Notas fica sempre visível** (pedido de 19/10/2026). Sem avaliações, abre uma orientação para gerar a aba `AVALIAÇÕES` no Mestrão.
 - A barra fica à vista em Hoje, Frequência e Turma; **some na chamada** (o botão de
   enviar mora embaixo) e na conexão.
 - Trocar de aba **nunca** perde chamada em andamento nem fila: o rascunho é por aula
@@ -53,6 +52,13 @@ O caminho é o que ele pediu: **Notas → turmas → disciplinas → alunos**.
 - **Guardar não envia ao SIAEP.** A nota entra na fila do aparelho
   (`chamada:fila-notas`) antes de sair, e só sai quando a planilha responde — o envio
   continua sendo do Mestrão, com conferência.
+
+## 2c. O menu Notas (19/10/2026)
+
+- A navegação de notas é **Notas → Turmas → Disciplinas → Estudantes**.
+- A aba inferior **Notas** fica visível mesmo sem avaliações e abre a lista de turmas; tocar numa turma abre disciplinas; tocar numa disciplina abre a avaliação e a lista de estudantes. Sem avaliações, a tela orienta a gerá-las no Mestrão.
+- Cada nível deve ser identificado pelo título **Turmas**, **Disciplinas** ou **Estudantes**, sem alterar a gravação de notas: elas continuam na fila do aparelho e seguem para a planilha; o Mestrão é quem lança no SIAEP.
+- Preservar o visual, a aba inferior, o seletor de avaliação e os botões de voltar já existentes.
 
 ## 3. Os estados de uma aula
 

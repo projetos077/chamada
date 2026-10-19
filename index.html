@@ -10,7 +10,7 @@
   <title>Chamada</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="estilo.css?v=21">
+  <link rel="stylesheet" href="estilo.css?v=23">
   <!-- O tema antes do primeiro desenho, para não piscar o G2 em quem escolheu outro. -->
   <script>try { const t = JSON.parse(localStorage.getItem("chamada:tema")); if (t) document.documentElement.dataset.tema = t; } catch {}</script>
 </head>
@@ -97,6 +97,7 @@
         <h1>Notas</h1>
       </div>
     </div>
+    <h2 class="titulo-secao">Turmas</h2>
     <div id="notas-conteudo" class="corpo-tela"></div>
   </section>
 
@@ -124,6 +125,7 @@
       </div>
     </div>
     <p id="nota-aviso" class="aviso" hidden></p>
+    <h2 class="titulo-secao">Estudantes</h2>
     <div id="nota-alunos" class="lista alunos"></div>
     <div class="espaco-do-botao"></div>
   </section>
@@ -187,7 +189,7 @@
       <button id="btn-atualizar" class="btn sec" type="button">Buscar a planilha agora</button>
       <button id="btn-trocar-codigo" class="btn sec" type="button">Trocar o código de conexão</button>
       <button class="btn pri" value="fechar">Fechar</button>
-      <p class="versao">Chamada 22</p>
+      <p class="versao">Chamada 23</p>
     </form>
   </dialog>
 
@@ -197,12 +199,11 @@
   <nav id="abas" class="abas" hidden>
     <button type="button" data-aba="hoje"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Hoje</button>
     <button type="button" data-aba="frequencia"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Frequência</button>
-    <!-- Notas só aparece quando a planilha tem avaliações (16/10/2026): sem elas
-         não há o que lançar, e a aba não nasce vazia. -->
-    <button type="button" id="aba-notas" data-aba="notas" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8 8.5h8M8 12.5h8M8 16.5h5"/></svg>Notas</button>
+    <!-- Notas fica sempre acessível; sem avaliações, a tela orienta a gerar no Mestrão. -->
+    <button type="button" id="aba-notas" data-aba="notas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8 8.5h8M8 12.5h8M8 16.5h5"/></svg>Notas</button>
   </nav>
 
   <div id="aviso-rapido" role="status"></div>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=23"></script>
 </body>
 </html>

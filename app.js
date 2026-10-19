@@ -1,4 +1,4 @@
-// Chamada 22 — o celular faz a chamada e as notas; o carteiro grava na Planilha Google.
+// Chamada 23 — o menu Notas abre Turmas → Disciplinas → Estudantes.
 //
 // Até a versão 15 o celular baixava o XLSX inteiro do Drive, encaixava a
 // chamada e subia o arquivo de volta, com um login do Google que vencia a cada
@@ -24,8 +24,9 @@
 // quando a planilha tem a aba AVALIAÇÕES (CONTRATOS.md §1).
 //
 // Chamada 22 (19/10/2026): as turmas na ordem do Mestrão — eletiva, 1ª, 2ª e 3ª série.
+// Chamada 23 (19/10/2026): Notas identifica os níveis Turmas → Disciplinas → Estudantes.
 
-const VERSAO = "22";
+const VERSAO = "23";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -109,9 +110,6 @@ function mostrar(tela) {
   document.querySelectorAll(".tela").forEach((el) => el.classList.toggle("ativa", el.id === `tela-${tela}`));
   // A barra de abas some só na chamada (o botão de enviar mora embaixo) e na conexão.
   $("abas").hidden = !["hoje", "turmas", "turma", "notas", "nota-turma", "nota-disciplina"].includes(tela);
-  // A aba Notas só existe quando a planilha tem avaliações (16/10/2026).
-  const abaNotas = $("aba-notas");
-  if (abaNotas) abaNotas.hidden = !temNotas();
   document.querySelectorAll("[data-aba]").forEach((el) => el.classList.toggle("ativa", el.dataset.aba === abaDa(tela)));
   window.scrollTo(0, 0);
 }
@@ -818,7 +816,6 @@ function mostrarResultado(aula, resultado) {
 // lança, com conferência.
 
 const avaliacoesDoPeriodo = () => grade?.avaliacoes ?? [];
-const temNotas = () => avaliacoesDoPeriodo().length > 0;
 const avaliacoesDaTurma = (nome) => avaliacoesDoPeriodo().filter((a) => a.turma === nome);
 /** Pronta é a que tem nome, instrumento e data — a mesma régua do Mestre.Core. */
 const pronta = (a) => Boolean(a.nome && a.data && a.instrumento);
@@ -839,7 +836,7 @@ function disciplinasDaTurma(nome) {
   }));
 }
 
-/** Notas · turmas: o cartão da Frequência, com a conta das avaliações. */
+/** Notas · turmas: o menu fica acessível mesmo antes de o Mestrão criar avaliações. */
 function desenharNotas() {
   const turmas = emOrdemDeSerie(grade?.turmas ?? []).filter((turma) => avaliacoesDaTurma(turma.nome).length);
   $("notas-periodo").textContent = [grade?.periodo?.momento && `${grade.periodo.momento}º período`, turmas.length && `${turmas.length} turmas`].filter(Boolean).join(" · ");
@@ -896,7 +893,7 @@ function desenharNotaTurma() {
     plural(lista.length, "avaliação", "avaliações"),
     lancar ? `${lancar} a lançar` : "todas lançadas"
   ].join(" · ");
-  $("nota-disciplinas").innerHTML = `<div class="lista" style="margin-top:14px">${disciplinasDaTurma(turmaDaNota).map(({ disciplina, lista: daDisciplina }) => {
+  $("nota-disciplinas").innerHTML = `<h2 class="titulo-secao">Disciplinas</h2><div class="lista" style="margin-top:14px">${disciplinasDaTurma(turmaDaNota).map(({ disciplina, lista: daDisciplina }) => {
     const falta = daDisciplina.filter(faltaLancar).length;
     const instrumentos = [...new Set(daDisciplina.map((a) => a.instrumento).filter(Boolean))].map(capitalizar);
     return `

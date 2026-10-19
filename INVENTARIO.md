@@ -1,4 +1,6 @@
-# Inventário do PWA — Chamada 20 (16/10/2026)
+# Inventário do PWA — estado atual Chamada 23 (19/10/2026)
+
+> O inventário funcional abaixo parte da Chamada 20; a navegação de Notas foi atualizada na Chamada 23 para **Notas → Turmas → Disciplinas → Estudantes**.
 
 > Frente **C0** do plano `referencia/ux-ui/lote-e-pwa/PLANO.md` (repositório do Mestrão).
 > Isto é o que existe hoje, lido do código — a base para não refazer nem perder nada.
@@ -15,9 +17,9 @@
 | Chamada | `#tela-chamada` | toque numa data | alunos em ordem alfabética, F e J, e o botão de enviar |
 | Folha do motivo | `#folha-motivo` | botão J | os nove códigos da Mestre 1.0.57 mais “Presente” |
 | Folha do envio | `#folha-envio` | ao enviar | recibo, fila ou recusa |
-| Notas | `#tela-notas` | aba Notas (só com avaliações na planilha) | os cartões das turmas, com "N avaliações a lançar" |
-| Notas · disciplinas | `#tela-nota-turma` | toque no cartão | uma linha por disciplina da turma |
-| Notas · alunos | `#tela-nota-disciplina` | toque na disciplina | a avaliação escolhida no alto, os alunos e a nota de cada um |
+| Notas · Turmas | `#tela-notas` | aba Notas, sempre visível | cartões das turmas; sem avaliações, orientação para gerá-las no Mestrão |
+| Notas · Disciplinas | `#tela-nota-turma` | toque numa turma | uma linha por disciplina da turma |
+| Notas · Estudantes | `#tela-nota-disciplina` | toque numa disciplina | avaliação escolhida no alto e lista de estudantes com suas notas |
 | Folha da nota | `#folha-nota` | toque no campo da nota | o teclado numérico (0 a 10, vírgula, Limpar, Guardar nota) |
 | Folha de Ajustes | `#folha-ajustes` | ⚙︎ | tema, horários juntos/separados, buscar agora, trocar o código |
 

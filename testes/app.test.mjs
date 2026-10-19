@@ -179,9 +179,11 @@ const AVALIACOES = (noDiario = false) => [
   { chave: TURMA + "|EDUCACAO DIGITAL(IS)|1", turma: TURMA, disciplina: "EDUCACAO DIGITAL(IS)", ordem: 1, nome: "1ª avaliação", data: "20/08/2026", instrumento: "Projeto", recuperacao: "", noDiario, notas: {} }
 ];
 
-test("a aba Notas só aparece quando a planilha tem avaliações", () => {
+test("a aba Notas permanece disponível sem avaliações e mostra orientação", () => {
   const sem = abrir(gradeCom(diaFeito()));
-  assert.equal(sem.porId.get("aba-notas").hidden, true, "sem avaliações não há o que lançar");
+  assert.equal(sem.porId.get("aba-notas").hidden, false, "Notas fica sempre acessível");
+  sem.contexto.abrirNotas();
+  assert.match(sem.porId.get("notas-conteudo").innerHTML, /A planilha ainda não tem avaliações/);
 
   const com = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
   assert.equal(com.porId.get("aba-notas").hidden, false);
