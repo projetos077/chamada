@@ -282,3 +282,13 @@ test("nota fora da régua não entra na fila", () => {
   assert.equal(app.localStorage.getItem("chamada:fila-notas"), null);
   assert.equal(app.porId.get("nota-alunos").innerHTML.includes(">11</button>"), false);
 });
+
+test("as turmas em ordem de série: eletiva, 1ª, 2ª, 3ª (19/10/2026)", () => {
+  const turma = (nome) => ({ nome, alunos: ["ANA GABRIELA SOUSA"], aulas: [coluna("18/09/2026", 1, ["0"])] });
+  // Na ordem em que a planilha vem: pelo número do SIAEP.
+  const nomes = ["26EI11", "26PMI-ADM-200", "26PMI-ADM-300", "26PMI-EPT-100", "26PMI-INT-200"];
+  const app = abrir({ ok: true, versao: 1, periodo: {}, turmas: nomes.map(turma), avaliacoes: [] });
+  app.contexto.desenharTurmas();
+  const ordem = [...app.porId.get("turmas-conteudo").innerHTML.matchAll(/data-turma="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(ordem, ["26EI11", "26PMI-EPT-100", "26PMI-ADM-200", "26PMI-INT-200", "26PMI-ADM-300"]);
+});

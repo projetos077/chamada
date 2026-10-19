@@ -1,4 +1,4 @@
-// Chamada 21 — o celular faz a chamada e as notas; o carteiro grava na Planilha Google.
+// Chamada 22 — o celular faz a chamada e as notas; o carteiro grava na Planilha Google.
 //
 // Até a versão 15 o celular baixava o XLSX inteiro do Drive, encaixava a
 // chamada e subia o arquivo de volta, com um login do Google que vencia a cada
@@ -22,8 +22,10 @@
 // (`turma|disciplina|ordem`), e quem a envia ao SIAEP continua sendo o Mestrão:
 // aqui ela só chega à planilha, pela mesma fila da chamada. A aba só aparece
 // quando a planilha tem a aba AVALIAÇÕES (CONTRATOS.md §1).
+//
+// Chamada 22 (19/10/2026): as turmas na ordem do Mestrão — eletiva, 1ª, 2ª e 3ª série.
 
-const VERSAO = "21";
+const VERSAO = "22";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -374,9 +376,17 @@ function desenharHoje() {
   $("hoje-conteudo").innerHTML = partes.join("");
 }
 
+// As turmas na ordem do Mestrão: eletiva, 1ª, 2ª, 3ª série (pedido dele em 19/10/2026).
+// A série sai do número do SIAEP ("26PMI-ADM-200" → 2).
+// ponytail: turma sem "-N00" no número vai antes — hoje só a eletiva é assim; se aparecer
+// outra, o Mestrão passa a mandar a série no `periodo`.
+const posicaoDaSerie = (turma) => Number(/-([1-4])\d\d$/.exec(turma.nome)?.[1] ?? 0);
+const emOrdemDeSerie = (turmas) =>
+  [...turmas].sort((a, b) => posicaoDaSerie(a) - posicaoDaSerie(b) || a.nome.localeCompare(b.nome, "pt-BR"));
+
 /** Um cartão por turma, como na v15: verde quando tudo está preenchido, contorno azul se a de hoje falta. */
 function desenharTurmas() {
-  const turmas = grade?.turmas ?? [];
+  const turmas = emOrdemDeSerie(grade?.turmas ?? []);
   const momento = grade?.periodo?.momento;
   $("turmas-periodo").textContent = [momento && `${momento}º período`, turmas.length && `${turmas.length} turmas`].filter(Boolean).join(" · ");
   if (!turmas.length) {
@@ -831,7 +841,7 @@ function disciplinasDaTurma(nome) {
 
 /** Notas · turmas: o cartão da Frequência, com a conta das avaliações. */
 function desenharNotas() {
-  const turmas = (grade?.turmas ?? []).filter((turma) => avaliacoesDaTurma(turma.nome).length);
+  const turmas = emOrdemDeSerie(grade?.turmas ?? []).filter((turma) => avaliacoesDaTurma(turma.nome).length);
   $("notas-periodo").textContent = [grade?.periodo?.momento && `${grade.periodo.momento}º período`, turmas.length && `${turmas.length} turmas`].filter(Boolean).join(" · ");
   if (!turmas.length) {
     $("notas-conteudo").innerHTML = `<div class="lista" style="margin-top:16px"><p class="vazio">A planilha ainda não tem avaliações — quem gera é o Mestrão.</p></div>`;
