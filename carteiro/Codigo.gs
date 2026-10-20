@@ -375,15 +375,15 @@ function abaDeNotas(livro) {
 }
 
 /**
- * A régua da nota, a mesma do Mestre.Core (notas.js): 0 a 10, uma casa decimal.
+ * A régua da nota, a mesma do Mestre.Core (notas.js): 0 a 10, até duas casas (20/10/2026).
  * Vazio é pedido de apagar — nota em branco é aluno ainda sem avaliação, e não se
  * escreve zero por ele.
  */
 function notaDaRegua(escrita) {
   const cru = texto(escrita).replace(",", ".");
   if (cru === "") return "";
-  if (!/^\d{1,2}(\.\d)?$/.test(cru)) {
-    throw new Error('Nota inválida: "' + escrita + '". Use um número de 0 a 10, com uma casa decimal — 8 ou 8,5.');
+  if (!/^\d{1,2}(\.\d{1,2})?$/.test(cru)) {
+    throw new Error('Nota inválida: "' + escrita + '". Use um número de 0 a 10, com até duas casas — 8, 8,5 ou 8,75.');
   }
   const valor = Number(cru);
   if (valor < 0 || valor > 10) {

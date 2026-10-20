@@ -207,10 +207,18 @@ test("nota vazia apaga a nota do aluno", () => {
   assert.equal(notas(c)[1][5], "");
 });
 
+test("nota com duas casas entra como está (20/10/2026)", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  const r = c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", "8.75"));
+  assert.equal(r.ok, true, r.erro);
+  assert.equal(r.valor, "8,75");
+});
+
 test("nota fora da régua é recusada e nada é gravado", () => {
   const c = carteiro();
   gerarComAvaliacoes(c);
-  for (const valor of ["11", "8,55", "abc", "-1", "10,5"]) {
+  for (const valor of ["11", "8,755", "abc", "-1", "10,5"]) {
     const r = c.post(nota("26PMI-INT-300|FISICA|1", "ANA GABRIELA SOUSA", valor));
     assert.equal(r.ok, false, "aceitou " + valor);
     assert.match(r.erro, /Nota/);

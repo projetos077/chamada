@@ -1,7 +1,7 @@
 // O app abre do aparelho, sem esperar a rede; a versão nova chega por trás e
 // a tela recarrega quando ela assume (app.js, `controllerchange`). A planilha (script.google.com) nunca passa por aqui.
-const CACHE = "chamada-28";
-const ARQUIVOS = ["./", "./index.html", "./estilo.css?v=28", "./app.js?v=28", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
+const CACHE = "chamada-29";
+const ARQUIVOS = ["./", "./index.html", "./estilo.css?v=29", "./app.js?v=29", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (evento) => {
   evento.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ARQUIVOS.map((url) => new Request(url, { cache: "reload" })))));

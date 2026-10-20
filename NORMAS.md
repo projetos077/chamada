@@ -45,7 +45,7 @@ O caminho é o que ele pediu: **Notas → turmas → disciplinas → alunos**.
 
 - A nota é de uma **avaliação** (`turma|disciplina|ordem`), escolhida na faixa do alto;
   ela abre na 1ª.
-- A régua é a do Mestrão: **0 a 10, uma casa decimal** (`Mestre.Core/notas.js`). Nota
+- A régua é a do Mestrão: **0 a 10, até duas casas decimais (20/10/2026)** (`Mestre.Core/notas.js`). Nota
   vazia é aluno ainda sem avaliação — não se escreve zero por ele.
 - **`NO DIÁRIO = SIM` é a avaliação no SIAEP, não a nota** (20/10/2026). Não tranca nada:
   é nela que o Mestrão lança. A avaliação fora do SIAEP também aceita nota, com aviso.

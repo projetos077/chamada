@@ -1026,7 +1026,7 @@ function abrirTeclado(indice) {
 }
 
 function digitar(digito) {
-  if (notaDigitada.length >= 4) return;
+  if (notaDigitada.length >= 5) return;
   if (digito === "," && notaDigitada.includes(",")) return;
   if (digito === "," && !notaDigitada) notaDigitada = "0";
   notaDigitada += digito;
@@ -1044,8 +1044,8 @@ function guardarNota() {
   if (!nome || !avaliacaoDaNota) return;
   const valor = notaDigitada.trim();
   const numero = valor.replace(",", ".");
-  if (valor !== "" && (!/^\d{1,2}(\.\d)?$/.test(numero) || Number(numero) > 10)) {
-    avisar("Nota inválida: use 0 a 10, com uma casa — 8 ou 8,5.");
+  if (valor !== "" && (!/^\d{1,2}(\.\d{1,2})?$/.test(numero) || Number(numero) > 10)) {
+    avisar("Nota inválida: use 0 a 10, com até duas casas — 8, 8,5 ou 8,75.");
     return;
   }
   const antes = avaliacaoDaNota.notas?.[nome] ?? "";
