@@ -125,6 +125,16 @@ test("aula por fazer continua Fazer, e não vira falta lançar", () => {
   assert.doesNotMatch(html, /falta-lancar/);
 });
 
+// 20/10/2026: pendência é só a que já chegou — datas passadas e a de hoje.
+test("aula que ainda vem diz Por vir e não conta como a preencher", () => {
+  const app = abrir(gradeCom([coluna("25/09/2026", 1, ["", ""]), coluna("31/12/2099", 1, ["", ""])], { momento: "4", lancadas: [] }));
+  app.contexto.abrirTurmas();
+  assert.match(app.porId.get("turmas-conteudo").innerHTML, /1 a preencher/);
+  app.contexto.abrirTurma(TURMA);
+  assert.match(app.porId.get("turma-aulas").innerHTML, /class="linha por-vir"[\s\S]*Por vir/);
+  assert.match(app.porId.get("turma-resumo").textContent, /1 de 2 aulas a preencher/);
+});
+
 test("a chamada que está na fila continua dizendo Na fila", () => {
   const fila = [{ id: "1", aula: TURMA + "|18/09/2026|1,2", chamada: {} }];
   const app = abrir(gradeCom(diaFeito(), { momento: "4", lancadas: [] }), { fila });

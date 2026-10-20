@@ -242,8 +242,10 @@ function aulasDeHoje() {
 
 // **Toda aula que o Mestrão gerou se preenche** — dito por ele em 13/10/2026: em dias
 // seguidos ou pulados, não interessa. O que falta é "a preencher", por turma; não
-// existe aula "atrasada".
-const aPreencher = (aula) => !aula.feita && !aula.travada;
+// existe aula "atrasada". Pendência é só a que já chegou: datas passadas e a de hoje; a que
+// ainda vem não conta (20/10/2026), mas continua aberta para quem quiser adiantar.
+const porVir = (aula) => ordenavel(aula.data) > ordenavel(hojeRotulo());
+const aPreencher = (aula) => !aula.feita && !aula.travada && !porVir(aula);
 
 /** A próxima depois de enviar: a do dia, se a enviada era de hoje; senão, a seguinte da mesma turma. */
 function proximaDepois(chave) {
@@ -266,6 +268,7 @@ function estadoDa(aula, agora = false) {
   // Feita no celular, e o diário ainda não tem: o terceiro estado (16/10/2026).
   if (aula.feita && aula.lancada === false) return ["sem-cor", `<span class="falta-lancar">Feita ·<br>falta lançar</span>`];
   if (aula.feita) return ["enviada", `<span class="feita">✓ ${recibo ? `Enviada ${horaDe(recibo.conferidaEm)}` : "Feita"}</span>`];
+  if (porVir(aula)) return ["por-vir", `<span class="acao">Por vir</span>`];
   return ["", `<span class="acao ${agora ? "agora" : ""}">${agora ? "Fazer agora" : "Fazer"}</span>`];
 }
 

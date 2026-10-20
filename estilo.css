@@ -312,3 +312,6 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
 .teclado button.sec { font-size: 15px; }
 .teclado button.guarda { grid-column: span 2; font-size: 15px; background: var(--amarelo); }
 
+
+/* A aula que ainda vem (20/10/2026): aberta, mas apagada — não é pendência. */
+.linha.por-vir { opacity: .55; }
