@@ -26,7 +26,7 @@
 // Chamada 22 (19/10/2026): as turmas na ordem do Mestrão — eletiva, 1ª, 2ª e 3ª série.
 // Chamada 23 (19/10/2026): Notas identifica os níveis Turmas → Disciplinas → Estudantes.
 
-const VERSAO = "30";
+const VERSAO = "31";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
