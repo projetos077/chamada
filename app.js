@@ -26,7 +26,7 @@
 // Chamada 22 (19/10/2026): as turmas na ordem do Mestrão — eletiva, 1ª, 2ª e 3ª série.
 // Chamada 23 (19/10/2026): Notas identifica os níveis Turmas → Disciplinas → Estudantes.
 
-const VERSAO = "32";
+const VERSAO = "33";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -720,24 +720,61 @@ async function enviarNota(item) {
   } catch (erro) {
     return false;
   }
-  filaNotas = filaNotas.filter((i) => i.id !== item.id);
-  guardar(CHAVES.filaNotas, filaNotas);
   if (!resposta.ok) {
-    // Não entrou: a tela volta ao que a planilha tinha, para não mostrar nota que não existe.
-    const avaliacao = alvoDaNota(item.chave);
-    if (avaliacao) {
-      avaliacao.notas = { ...(avaliacao.notas ?? {}) };
-      if (item.antes) avaliacao.notas[item.aluno] = item.antes;
-      else delete avaliacao.notas[item.aluno];
-      guardar(CHAVES.grade, grade);
-    }
-    avisar(resposta.erro);
-    if (telaAtual === "nota-disciplina") desenharNotaAlunos();
-    desenharChip();
+    recusarNota(item, resposta.erro);
     return false;
   }
+  tirarDaFila([item.id]);
   desenharChip();
   return true;
+}
+
+function tirarDaFila(ids) {
+  filaNotas = filaNotas.filter((i) => !ids.includes(i.id));
+  guardar(CHAVES.filaNotas, filaNotas);
+}
+
+/** Não entrou: a tela volta ao que a planilha tinha, para não mostrar nota que não existe. */
+function recusarNota(item, erro) {
+  tirarDaFila([item.id]);
+  const avaliacao = alvoDaNota(item.chave);
+  if (avaliacao) {
+    avaliacao.notas = { ...(avaliacao.notas ?? {}) };
+    if (item.antes) avaliacao.notas[item.aluno] = item.antes;
+    else delete avaliacao.notas[item.aluno];
+    guardar(CHAVES.grade, grade);
+  }
+  avisar(erro);
+  if (telaAtual === "nota-disciplina") desenharNotaAlunos();
+  desenharChip();
+}
+
+/**
+ * Todas as notas da fila numa ida só à planilha (20/10/2026: 17 idas levavam minutos).
+ * Devolve {salvas, falhas}; null quando o carteiro publicado ainda não conhece a ação "notas".
+ */
+async function enviarNotasJuntas(itens) {
+  let resposta;
+  try {
+    resposta = await pedir("notas", { notas: itens.map(({ chave, aluno, valor }) => ({ chave, aluno, valor })) });
+  } catch (erro) {
+    return { salvas: 0, falhas: itens };
+  }
+  if (!resposta.ok) return /desconhecida/i.test(resposta.erro ?? "") ? null : { salvas: 0, falhas: itens };
+  let salvas = 0;
+  const falhas = [];
+  itens.forEach((item, i) => {
+    const r = resposta.resultados?.[i];
+    if (r?.ok) {
+      salvas++;
+      tirarDaFila([item.id]);
+    } else {
+      falhas.push(item);
+      recusarNota(item, r?.erro ?? "A planilha não respondeu esta nota.");
+    }
+  });
+  desenharChip();
+  return { salvas, falhas };
 }
 
 /** O botão único do fim da lista: salva todas as notas da fila, com tela de espera até o fim. */
@@ -746,15 +783,22 @@ async function salvarNotas() {
   if (salvandoNotas || !filaNotas.length) return;
   salvandoNotas = true;
   await esvaziandoNotas?.catch(() => {});
-  const total = filaNotas.length;
+  const itens = [...filaNotas];
+  const total = itens.length;
   let salvas = 0;
-  const falhas = [];
+  let falhas = [];
   const tela = $("salvando-conteudo");
   $("folha-salvando").showModal();
-  for (const item of [...filaNotas]) {
-    tela.innerHTML = `<div class="selo espera"><span class="gira grande"></span></div><h3>Salvando as notas…</h3><p>${salvas + falhas.length} de ${total}. Não saia desta tela.</p>`;
-    if (await enviarNota(item)) salvas++;
-    else falhas.push(item);
+  tela.innerHTML = `<div class="selo espera"><span class="gira grande"></span></div><h3>Salvando as notas…</h3><p>${plural(total, "nota", "notas")}. Não saia desta tela.</p>`;
+  const juntas = await enviarNotasJuntas(itens);
+  if (juntas) ({ salvas, falhas } = juntas);
+  else {
+    // Carteiro antigo, sem a ação "notas": uma por uma, como antes.
+    for (const item of itens) {
+      tela.innerHTML = `<div class="selo espera"><span class="gira grande"></span></div><h3>Salvando as notas…</h3><p>${salvas + falhas.length} de ${total}. Não saia desta tela.</p>`;
+      if (await enviarNota(item)) salvas++;
+      else falhas.push(item);
+    }
   }
   salvandoNotas = false;
   tela.innerHTML = falhas.length

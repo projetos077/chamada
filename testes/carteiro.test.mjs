@@ -215,6 +215,31 @@ test("nota com duas casas entra como está (20/10/2026)", () => {
   assert.equal(r.valor, "8,75");
 });
 
+// 20/10/2026: 17 notas em 17 idas levavam minutos; agora vão numa só, cada uma com o seu resultado.
+test("várias notas numa ida só: as boas entram, a recusada volta com o motivo, corrigir reescreve", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c);
+  const K = "26PMI-INT-300|FISICA|1";
+  const lote = (notas) => c.post({ acao: "notas", notas });
+  const r = lote([
+    { chave: K, aluno: "ANA GABRIELA SOUSA", valor: "8.75" },
+    { chave: K, aluno: "CARLOS DANIEL LIMA", valor: "11" },
+    { chave: K + "|rec", aluno: "CARLOS DANIEL LIMA", valor: "7" },
+    { chave: "outra|X|9", aluno: "ANA GABRIELA SOUSA", valor: "5" }
+  ]);
+  assert.equal(r.ok, true, r.erro);
+  assert.deepEqual(r.resultados.map((x) => x.ok), [true, false, true, false]);
+  assert.match(r.resultados[1].erro, /Nota/);
+  assert.match(r.resultados[3].erro, /não está mais/);
+  const notas = c.post({ acao: "grade" }).avaliacoes[0];
+  assert.deepEqual(notas.notas, { "ANA GABRIELA SOUSA": "8,75" });
+  assert.deepEqual(notas.notasRec, { "CARLOS DANIEL LIMA": "7" });
+  // Corrigir a mesma nota escreve na mesma linha.
+  assert.equal(lote([{ chave: K, aluno: "ANA GABRIELA SOUSA", valor: "9" }]).ok, true);
+  assert.equal(c.livro.getSheetByName("NOTAS").dados().length, 3, "cabeçalho + 2 linhas");
+  assert.deepEqual(c.post({ acao: "grade" }).avaliacoes[0].notas, { "ANA GABRIELA SOUSA": "9" });
+});
+
 test("nota fora da régua é recusada e nada é gravado", () => {
   const c = carteiro();
   gerarComAvaliacoes(c);

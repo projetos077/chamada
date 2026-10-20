@@ -15,6 +15,7 @@
 //                                              (e as avaliações, com as notas)
 //   celular → {acao: "chamada", chamada}       grava só as células daquela aula
 //   celular → {acao: "nota", nota}             grava uma nota (aba NOTAS)
+//   celular → {acao: "notas", notas}           grava várias de uma vez (uma leitura, uma gravação)
 //
 // Substitui o caminho antigo (celular → API do Drive → XLSX inteiro → Drive
 // para desktop → Mestrão): o celular manda poucos KB, a trava do script faz as
@@ -46,7 +47,7 @@ function doPost(e) {
     return responder({ ok: false, erro: "Código de conexão errado. Copie de novo o código da planilha." });
   }
 
-  const escreve = pedido.acao === "gerar" || pedido.acao === "chamada" || pedido.acao === "nota";
+  const escreve = pedido.acao === "gerar" || pedido.acao === "chamada" || pedido.acao === "nota" || pedido.acao === "notas";
   const trava = LockService.getScriptLock();
   if (escreve && !trava.tryLock(25000)) {
     return responder({ ok: false, erro: "A planilha está ocupada com outra gravação. Tente de novo." });
@@ -57,6 +58,7 @@ function doPost(e) {
     if (pedido.acao === "grade") return responder(grade(livro));
     if (pedido.acao === "chamada") return responder(gravarChamada(livro, pedido.chamada));
     if (pedido.acao === "nota") return responder(gravarNota(livro, pedido.nota));
+    if (pedido.acao === "notas") return responder(gravarNotas(livro, pedido.notas));
     if (pedido.acao === "gerar") return responder(gerar(livro, pedido.abas, pedido.periodo));
     return responder({ ok: false, erro: `Ação desconhecida: ${pedido.acao}` });
   } catch (erro) {
@@ -444,6 +446,73 @@ function gravarNota(livro, nota) {
     valor: relida,
     conferidaEm: new Date().toISOString()
   };
+}
+
+/**
+ * O celular grava várias notas de uma vez (20/10/2026).
+ *
+ * `gravarNota` relia a planilha inteira a cada nota: 17 notas eram 17 idas e voltas de
+ * vários segundos. Aqui é uma leitura, uma gravação e uma conferência; cada nota volta
+ * com o seu resultado, porque uma recusada (régua, avaliação que saiu) não derruba as outras.
+ */
+function gravarNotas(livro, notas) {
+  if (!Array.isArray(notas) || !notas.length) throw new Error("Nenhuma nota para gravar.");
+  const dadas = lerAvaliacoes(livro);
+  const avaliacoes = new Set(dadas.map((a) => a.chave));
+  const aba = abaDeNotas(livro);
+  const linhas = linhasDa(livro, aba).map((linha) => {
+    const cheia = linha.slice(0, 6).map((v) => (v === null || v === undefined ? "" : String(v)));
+    while (cheia.length < 6) cheia.push("");
+    return cheia;
+  });
+  const onde = new Map();
+  linhas.forEach((linha, i) => {
+    if (!ehCabecalhoDeColunas(linha, COLUNAS_DA_NOTA)) onde.set(texto(linha[0]) + "\u0001" + normalizado(linha[4]), i);
+  });
+
+  const resultados = [];
+  const gravadas = [];
+  for (let n = 0; n < notas.length; n++) {
+    const nota = notas[n];
+    const chave = texto(nota && nota.chave);
+    const aluno = texto(nota && nota.aluno);
+    const base = chave.replace(/\|rec$/, "");
+    if (!chave || !aluno) { resultados[n] = ({ chave, aluno, ok: false, erro: "Nota incompleta." }); continue; }
+    if (!avaliacoes.has(base)) { resultados[n] = ({ chave, aluno, ok: false, erro: "A avaliação " + chave + " não está mais na planilha." }); continue; }
+    let valor;
+    try {
+      valor = notaDaRegua(nota.valor);
+    } catch (erro) {
+      resultados[n] = ({ chave, aluno, ok: false, erro: String(erro.message) });
+      continue;
+    }
+    const k = chave + "\u0001" + normalizado(aluno);
+    let i = onde.get(k);
+    if (i === undefined) {
+      const avaliacao = dadas.find((a) => a.chave === base);
+      i = linhas.length;
+      linhas.push([chave, avaliacao.turma, avaliacao.disciplina, String(avaliacao.ordem), aluno, ""]);
+      onde.set(k, i);
+    }
+    linhas[i][5] = valor;
+    gravadas.push({ chave, aluno, valor, i, n });
+  }
+
+  if (gravadas.length) {
+    const faixa = aba.getRange(1, 1, linhas.length, 6);
+    faixa.setNumberFormat("@");
+    faixa.setValues(linhas);
+    SpreadsheetApp.flush();
+    // A confirmação é da planilha: relê tudo uma vez.
+    const relidas = aba.getRange(1, 1, linhas.length, 6).getValues();
+    for (const g of gravadas) {
+      const ok = texto(relidas[g.i][5]) === g.valor;
+      resultados[g.n] = (ok
+        ? { chave: g.chave, aluno: g.aluno, ok: true, valor: g.valor }
+        : { chave: g.chave, aluno: g.aluno, ok: false, erro: "A planilha não guardou a nota de " + g.aluno + ". Tente enviar de novo." });
+    }
+  }
+  return { ok: true, versao: novaVersao(), resultados, conferidaEm: new Date().toISOString() };
 }
 
 /** Um cabeçalho confere quando as duas primeiras colunas são as do contrato. */
