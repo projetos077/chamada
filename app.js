@@ -1136,13 +1136,8 @@ document.addEventListener("click", (evento) => {
     const aluno = aberta.alunos[alunoDoMotivo];
     if (aluno.marca !== alvo.dataset.motivo) marcar(alunoDoMotivo, alvo.dataset.motivo);
     $("folha-motivo").close();
-  } else if (alvo.hasAttribute("data-voltar")) {
-    if (telaAtual === "chamada" && turmaAberta) abrirTurma(turmaAberta);
-    else if (telaAtual === "nota-disciplina") abrirNotaTurma(turmaDaNota);
-    else if (telaAtual === "nota-turma") abrirNotas();
-    else if (telaAtual === "turma") abrirTurmas();
-    else voltarParaHoje();
-  } else if (alvo.dataset.proxima) {
+  } else if (alvo.hasAttribute("data-voltar")) voltar();
+  else if (alvo.dataset.proxima) {
     $("folha-envio").close();
     abrirChamada(alvo.dataset.proxima);
   } else if (alvo.hasAttribute("data-tentar")) {
@@ -1155,6 +1150,37 @@ document.addEventListener("click", (evento) => {
     atualizarGrade().then(() => abrirChamada(chave)).catch((erro) => avisar(erro.message));
   }
 });
+
+// A versão de Ajustes sai do ?v= do próprio app.js: escrita à mão, ficou em "Chamada 23" até a 27.
+const versaoDoApp = document.currentScript && new URL(document.currentScript.src).searchParams.get("v");
+if (versaoDoApp) document.querySelector(".versao")?.replaceChildren(`Chamada ${versaoDoApp}`);
+
+/** O ‹ do alto e o arrastar da borda esquerda fazem o mesmo caminho. */
+function voltar() {
+  if (telaAtual === "chamada" && turmaAberta) abrirTurma(turmaAberta);
+  else if (telaAtual === "nota-disciplina") abrirNotaTurma(turmaDaNota);
+  else if (telaAtual === "nota-turma") abrirNotas();
+  else if (telaAtual === "turma") abrirTurmas();
+  else voltarParaHoje();
+}
+
+// Arrastar da borda esquerda para a direita volta, como no iPhone (20/10/2026). Só nas
+// telas que têm o ‹, e nunca com uma folha aberta (teclado da nota, motivo, envio).
+const TELAS_COM_VOLTAR = new Set(["turma", "chamada", "nota-turma", "nota-disciplina"]);
+let arrasto = null;
+document.addEventListener("touchstart", (evento) => {
+  const toque = evento.touches[0];
+  arrasto = evento.touches.length === 1 && toque.clientX < 30 && TELAS_COM_VOLTAR.has(telaAtual) &&
+    !document.querySelector("dialog[open]") ? { x: toque.clientX, y: toque.clientY } : null;
+}, { passive: true });
+document.addEventListener("touchend", (evento) => {
+  const toque = evento.changedTouches[0];
+  if (!arrasto || !toque) return;
+  const dx = toque.clientX - arrasto.x;
+  const dy = Math.abs(toque.clientY - arrasto.y);
+  arrasto = null;
+  if (dx > 70 && dy < dx / 2) voltar();
+}, { passive: true });
 
 function voltarParaHoje() {
   turmaAberta = null;

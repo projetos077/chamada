@@ -389,3 +389,31 @@ test("Notas: com nota guardada e alguém abaixo de 6 ou sem nota, aparece a Rec 
   assert.doesNotMatch(html, /ANA GABRIELA SOUSA/);
   assert.match(app.porId.get("nota-avaliacao").textContent, /Recuperação/);
 });
+
+// 20/10/2026: arrastar da borda esquerda volta, como o ‹ do alto.
+test("arrastar da borda esquerda para a direita volta uma tela; do meio da tela, não", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES(true)));
+  app.contexto.abrirNotaTurma(TURMA);
+  const arrastar = (de, ate) => {
+    app.documento.dispatchEvent({ type: "touchstart", touches: [{ clientX: de, clientY: 300 }] });
+    app.documento.dispatchEvent({ type: "touchend", changedTouches: [{ clientX: ate, clientY: 310 }] });
+  };
+  arrastar(150, 300);
+  assert.equal(app.porId.get("notas-conteudo")?.innerHTML ?? "", "", "do meio da tela não volta");
+  arrastar(10, 160);
+  assert.match(app.porId.get("notas-conteudo").innerHTML, /data-nota-turma/, "da borda volta para as turmas");
+});
+
+test("uma nota salva e os outros sem nota: a Rec aparece na hora, e continua ao voltar e abrir de novo", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES(true)));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  assert.doesNotMatch(app.porId.get("nota-avaliacoes").innerHTML, /\|FISICA\|1\|rec/);
+  app.contexto.abrirTeclado(0);
+  app.contexto.digitar("9");
+  app.contexto.guardarNota();
+  assert.match(app.porId.get("nota-avaliacoes").innerHTML, /\|FISICA\|1\|rec">Rec 1ª/);
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  assert.match(app.porId.get("nota-avaliacoes").innerHTML, /\|FISICA\|1\|rec">Rec 1ª/);
+});

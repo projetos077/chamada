@@ -59,6 +59,9 @@ O caminho é o que ele pediu: **Notas → turmas → disciplinas → alunos**.
   ou sem nota, aparece "Rec Nª" ao lado dela, só com esses estudantes (e quem já tem nota
   nela). A nota vai com a chave `<avaliação>|rec` (`chaveDaRecuperacao` do Mestre.Core), e o
   carteiro a devolve em `notasRec`. Sem data de recuperação no SIAEP, a tela avisa.
+- **Voltar** (20/10/2026): o ‹ do alto e o arrastar da borda esquerda para a direita fazem o
+  mesmo caminho (`voltar()`), nas telas que têm o ‹ e nunca com uma folha aberta.
+- **A versão em Ajustes** sai do `?v=` do `app.js` — escrita à mão, ficou em "Chamada 23".
 - **Guardar não envia ao SIAEP.** A nota entra na fila do aparelho
   (`chamada:fila-notas`) antes de sair, e só sai quando a planilha responde — o envio
   continua sendo do Mestrão, com conferência.
