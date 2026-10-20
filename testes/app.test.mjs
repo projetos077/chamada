@@ -314,6 +314,22 @@ test("o teclado digita a nota e Guardar põe na fila do aparelho", () => {
   assert.match(app.porId.get("nota-alunos").innerHTML, />7,5<\/button>/);
 });
 
+// 20/10/2026: a nota digitada sumia ao reabrir — a grade nova da planilha passava por cima dela.
+test("a nota ainda na fila volta por cima da grade que chega da planilha, e o estudante tocado fica marcado", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  app.contexto.abrirTeclado(1);
+  app.contexto.digitar("9");
+  app.contexto.guardarNota();
+  assert.match(app.porId.get("nota-alunos").innerHTML, /class="aluno marcado"/);
+  assert.equal(app.porId.get("btn-salvar-notas").textContent, "Salvar notas (1)");
+  app.contexto.grade = gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES());
+  app.contexto.aplicarFilaNotas();
+  app.contexto.desenharNotaAlunos();
+  assert.match(app.porId.get("nota-alunos").innerHTML, />9<\/button>/);
+});
+
 test("nota fora da régua não entra na fila", () => {
   const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
   app.contexto.abrirNotaTurma(TURMA);

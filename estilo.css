@@ -315,3 +315,9 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
 
 /* A aula que ainda vem (20/10/2026): aberta, mas apagada — não é pendência. */
 .linha.por-vir { opacity: .55; }
+
+/* Notas: o estudante tocado fica marcado (20/10/2026) e o botão só aparece na tela das notas. */
+.aluno.marcado { background: var(--amarelo-fundo, #fff3b0); box-shadow: inset 5px 0 var(--nanquim); }
+#btn-salvar-notas { display: none; }
+#tela-nota-disciplina.ativa #btn-salvar-notas { display: block; }
+.gira.grande { display: inline-block; width: 34px; height: 34px; border: 4px solid rgba(26, 26, 26, .25); border-top-color: var(--nanquim); border-radius: 50%; animation: gira .8s linear infinite; }

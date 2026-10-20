@@ -10,7 +10,7 @@
   <title>Chamada</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="estilo.css?v=29">
+  <link rel="stylesheet" href="estilo.css?v=30">
   <!-- O tema antes do primeiro desenho, para não piscar o G2 em quem escolheu outro. -->
   <script>try { const t = JSON.parse(localStorage.getItem("chamada:tema")); if (t) document.documentElement.dataset.tema = t; } catch {}</script>
 </head>
@@ -128,6 +128,7 @@
     <h2 class="titulo-secao">Estudantes</h2>
     <div id="nota-alunos" class="lista alunos"></div>
     <div class="espaco-do-botao"></div>
+    <button id="btn-salvar-notas" class="flutua" type="button">Salvar notas</button>
   </section>
 
   <!-- Justificativa: os códigos da Mestre 1.0.57 (CONTRATOS.md §1). -->
@@ -167,6 +168,12 @@
     </form>
   </dialog>
 
+  <!-- A espera depois de Salvar notas: sem Esc e sem fundo clicável até a planilha responder. -->
+  <dialog id="folha-salvando" class="folha">
+    <div class="pega"></div>
+    <div id="salvando-conteudo"></div>
+  </dialog>
+
   <!-- O que aconteceu com o envio: enviada, guardada no celular ou recusada. -->
   <dialog id="folha-envio" class="folha">
     <form method="dialog">
@@ -204,6 +211,6 @@
   </nav>
 
   <div id="aviso-rapido" role="status"></div>
-  <script src="app.js?v=29"></script>
+  <script src="app.js?v=30"></script>
 </body>
 </html>

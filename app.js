@@ -26,7 +26,7 @@
 // Chamada 22 (19/10/2026): as turmas na ordem do Mestrão — eletiva, 1ª, 2ª e 3ª série.
 // Chamada 23 (19/10/2026): Notas identifica os níveis Turmas → Disciplinas → Estudantes.
 
-const VERSAO = "23";
+const VERSAO = "30";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -611,6 +611,7 @@ function atualizarGrade() {
       // busca traz a nova. Trocar por vazio apagaria a tela no meio da chamada.
       if (!resposta.turmas?.length && grade?.turmas?.length) return;
       grade = resposta;
+      aplicarFilaNotas();
       conferidaEm = Date.now();
       guardar(CHAVES.grade, grade);
       guardar(CHAVES.conferida, conferidaEm);
@@ -700,14 +701,24 @@ function esvaziarFila() {
 
 let esvaziandoNotas = null;
 
-/** Uma nota da fila. Devolve o que aconteceu; a nota só sai quando o carteiro responde. */
+/**
+ * A nota digitada e ainda não salva volta por cima do que a planilha mandou (20/10/2026):
+ * sem isto, abrir o app trocava a grade e a nota sumia da tela, embora estivesse na fila.
+ */
+function aplicarFilaNotas() {
+  for (const item of filaNotas) {
+    const avaliacao = alvoDaNota(item.chave);
+    if (avaliacao) avaliacao.notas = { ...(avaliacao.notas ?? {}), [item.aluno]: item.valor };
+  }
+}
+
+/** Uma nota da fila. Devolve se a planilha guardou; a nota só sai da fila quando o carteiro responde. */
 async function enviarNota(item) {
   let resposta;
   try {
     resposta = await pedir("nota", { nota: { chave: item.chave, aluno: item.aluno, valor: item.valor } });
   } catch (erro) {
-    avisar("Guardada no celular: " + erro.message + " A nota de " + item.aluno + " vai sozinha depois.");
-    return;
+    return false;
   }
   filaNotas = filaNotas.filter((i) => i.id !== item.id);
   guardar(CHAVES.filaNotas, filaNotas);
@@ -723,10 +734,43 @@ async function enviarNota(item) {
     avisar(resposta.erro);
     if (telaAtual === "nota-disciplina") desenharNotaAlunos();
     desenharChip();
-    return;
+    return false;
   }
-  avisar("Nota de " + item.aluno + " salva para o Mestrão.");
   desenharChip();
+  return true;
+}
+
+/** O botão único do fim da lista: salva todas as notas da fila, com tela de espera até o fim. */
+let salvandoNotas = false;
+async function salvarNotas() {
+  if (salvandoNotas || !filaNotas.length) return;
+  salvandoNotas = true;
+  await esvaziandoNotas?.catch(() => {});
+  const total = filaNotas.length;
+  let salvas = 0;
+  const falhas = [];
+  const tela = $("salvando-conteudo");
+  $("folha-salvando").showModal();
+  for (const item of [...filaNotas]) {
+    tela.innerHTML = `<div class="selo espera"><span class="gira grande"></span></div><h3>Salvando as notas…</h3><p>${salvas + falhas.length} de ${total}. Não saia desta tela.</p>`;
+    if (await enviarNota(item)) salvas++;
+    else falhas.push(item);
+  }
+  salvandoNotas = false;
+  tela.innerHTML = falhas.length
+    ? `<div class="selo recusa">!</div><h3>${plural(falhas.length, "nota não entrou", "notas não entraram")}</h3>
+       <p>${salvas ? `${plural(salvas, "foi salva", "foram salvas")}. ` : ""}As outras ficam guardadas no celular; toque em salvar de novo quando a planilha responder.</p>
+       <button class="btn pri" type="button" data-fechar-salvando>Entendi</button>`
+    : `<div class="selo">✓</div><h3>Notas salvas</h3><p>${plural(salvas, "nota está", "notas estão")} na planilha, prontas para o Mestrão.</p>
+       <button class="btn pri" type="button" data-fechar-salvando>Pronto</button>`;
+  desenharSalvarNotas();
+  desenharChip();
+}
+
+function desenharSalvarNotas() {
+  const botao = $("btn-salvar-notas");
+  botao.disabled = !filaNotas.length;
+  botao.textContent = filaNotas.length ? `Salvar notas (${filaNotas.length})` : "Notas salvas ✓";
 }
 
 function esvaziarFilaDeNotas() {
@@ -994,7 +1038,7 @@ function desenharNotaAlunos() {
   $("nota-alunos").innerHTML = alunosDaNota.map((nome, i) => {
     const valor = notas[nome] ?? "";
     return `
-      <div class="aluno">
+      <div class="aluno ${nome === alunoMarcado ? "marcado" : ""}">
         <span class="n">${i + 1}</span>
         <span class="nome">${escapar(nome)}</span>
         <button class="bt nota ${valor ? "" : "vazia"}" data-nota="${i}" aria-label="Nota de ${escapar(nome)}">${valor ? escapar(valor) : "—"}</button>
@@ -1008,6 +1052,7 @@ function desenharNotaAlunos() {
     .filter((numero) => !Number.isNaN(numero));
   $("nota-com").textContent = comNota;
   $("nota-sem").textContent = alunosDaNota.length - comNota;
+  desenharSalvarNotas();
   $("nota-media").textContent = valores.length
     ? (valores.reduce((soma, numero) => soma + numero, 0) / valores.length).toFixed(1).replace(".", ",")
     : "—";
@@ -1015,10 +1060,13 @@ function desenharNotaAlunos() {
 
 // ── O teclado da nota ───────────────────────────────────────────────────────
 
+let alunoMarcado = null;
 function abrirTeclado(indice) {
   const nome = alunosDaNota[indice];
   if (!nome || !avaliacaoDaNota) return;
   notaAluno = indice;
+  alunoMarcado = nome;
+  desenharNotaAlunos();
   notaDigitada = avaliacaoDaNota.notas?.[nome] ?? "";
   $("nota-aluno").textContent = nome;
   $("nota-visor").textContent = notaDigitada || "—";
@@ -1059,7 +1107,7 @@ function guardarNota() {
   // A faixa também: a nota guardada pode acender a "Rec" da avaliação.
   if (telaAtual === "nota-disciplina") desenharNotaDisciplina();
   desenharChip();
-  esvaziarFilaDeNotas();
+  desenharSalvarNotas();
 }
 
 // ── Conectar ────────────────────────────────────────────────────────────────
@@ -1130,6 +1178,8 @@ document.addEventListener("click", (evento) => {
     notaDigitada = "";
     $("nota-visor").textContent = "—";
   } else if (alvo.hasAttribute("data-guardar-nota")) guardarNota();
+  else if (alvo.id === "btn-salvar-notas") salvarNotas();
+  else if (alvo.hasAttribute("data-fechar-salvando")) $("folha-salvando").close();
   else if (alvo.dataset.falta) marcar(Number(alvo.dataset.falta), "F");
   else if (alvo.dataset.justificar) abrirMotivos(Number(alvo.dataset.justificar));
   else if (alvo.dataset.motivo) {
@@ -1157,6 +1207,7 @@ if (versaoDoApp) document.querySelector(".versao")?.replaceChildren(`Chamada ${v
 
 /** O ‹ do alto e o arrastar da borda esquerda fazem o mesmo caminho. */
 function voltar() {
+  if (salvandoNotas) return;
   if (telaAtual === "chamada" && turmaAberta) abrirTurma(turmaAberta);
   else if (telaAtual === "nota-disciplina") abrirNotaTurma(turmaDaNota);
   else if (telaAtual === "nota-turma") abrirNotas();
@@ -1206,6 +1257,7 @@ $("chip").addEventListener("click", () => {
 });
 
 $("btn-enviar").addEventListener("click", enviar);
+$("folha-salvando").addEventListener("cancel", (e) => { if (salvandoNotas) e.preventDefault(); });
 $("btn-conectar").addEventListener("click", conectar);
 $("btn-colar").addEventListener("click", async () => {
   try {
@@ -1259,7 +1311,6 @@ $("btn-trocar-codigo").addEventListener("click", () => {
 function sincronizar() {
   if (!conexao) return;
   esvaziarFila();
-  esvaziarFilaDeNotas();
   atualizarGrade().catch(() => desenharChip());
 }
 
