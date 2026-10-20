@@ -365,3 +365,27 @@ test("Notas: a disciplina sem nota do Mestrão some, e a turma só com ela tamb�
   assert.match(html, /2 avaliações com notas a lançar/);
   assert.doesNotMatch(html, /Educação Digital/);
 });
+
+// 20/10/2026: depois de guardada uma nota, quem ficou abaixo de 6 ou sem nota abre a recuperação.
+test("Notas: com nota guardada e alguém abaixo de 6 ou sem nota, aparece a Rec só com eles", () => {
+  const avs = AVALIACOES(true);
+  const sem = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, avs));
+  sem.contexto.abrirNotaTurma(TURMA);
+  sem.contexto.abrirNotaDisciplina("FISICA");
+  assert.doesNotMatch(sem.porId.get("nota-avaliacoes").innerHTML, /\|FISICA\|1\|rec/, "a 1ª, sem nota nenhuma, não tem recuperação");
+
+  avs[0].notas = { "ANA GABRIELA SOUSA": "8", "CARLOS DANIEL LIMA": "5,5" };
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, avs));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  assert.match(app.porId.get("nota-avaliacoes").innerHTML, /data-escolher-avaliacao="26PMI-INT-300\|FISICA\|1\|rec">Rec 1ª/);
+  // A 2ª: Ana tem 8,5 e Carlos está sem nota — também abre a Rec.
+  assert.match(app.porId.get("nota-avaliacoes").innerHTML, /\|FISICA\|2\|rec">Rec 2ª/);
+
+  const rec = { tagName: "BUTTON", dataset: { escolherAvaliacao: TURMA + "|FISICA|1|rec" }, hasAttribute: () => false, closest: (s) => (s === "button" ? rec : null) };
+  app.clicar(rec);
+  const html = app.porId.get("nota-alunos").innerHTML;
+  assert.match(html, /CARLOS DANIEL LIMA/);
+  assert.doesNotMatch(html, /ANA GABRIELA SOUSA/);
+  assert.match(app.porId.get("nota-avaliacao").textContent, /Recuperação/);
+});

@@ -713,7 +713,7 @@ async function enviarNota(item) {
   guardar(CHAVES.filaNotas, filaNotas);
   if (!resposta.ok) {
     // Não entrou: a tela volta ao que a planilha tinha, para não mostrar nota que não existe.
-    const avaliacao = avaliacoesDoPeriodo().find((a) => a.chave === item.chave);
+    const avaliacao = alvoDaNota(item.chave);
     if (avaliacao) {
       avaliacao.notas = { ...(avaliacao.notas ?? {}) };
       if (item.antes) avaliacao.notas[item.aluno] = item.antes;
@@ -839,6 +839,23 @@ const avaliacoesDaTurma = (nome) => avaliacoesDoPeriodo().filter((a) => a.turma 
 const alunosDaTurma = (nome) => grade?.turmas.find((t) => t.nome === nome)?.alunos ?? [];
 const semNota = (a) => alunosDaTurma(a.turma).filter((aluno) => !a.notas?.[aluno]).length;
 const faltaLancar = (a) => semNota(a) > 0;
+// A recuperação da avaliação (20/10/2026): depois de guardada alguma nota, se alguém ficou
+// abaixo de 6 ou sem nota, aparece a "Rec" ao lado dela, só com esses estudantes. A nota vai
+// com a chave "<avaliação>|rec", a mesma de `chaveDaRecuperacao` no Mestre.Core.
+const abaixoDe6 = (nota) => !String(nota ?? "").trim() || Number(String(nota).replace(",", ".")) < 6;
+const precisaRec = (a) => pronta(a) && temNota(a) && alunosDaTurma(a.turma).some((aluno) => abaixoDe6(a.notas?.[aluno]));
+const vistaRec = (a) => ({
+  chave: `${a.chave}|rec`, turma: a.turma, disciplina: a.disciplina, ordem: a.ordem, base: a, rec: true,
+  nome: `Recuperação · ${a.nome}`, data: a.recuperacao, instrumento: "", noDiario: Boolean(a.recuperacao),
+  get notas() { return a.notasRec ?? {}; },
+  set notas(valor) { a.notasRec = valor; }
+});
+/** A avaliação (ou a recuperação dela) pela chave da nota. */
+function alvoDaNota(chave) {
+  const base = String(chave).replace(/\|rec$/, "");
+  const avaliacao = avaliacoesDoPeriodo().find((a) => a.chave === base);
+  return avaliacao && base !== chave ? vistaRec(avaliacao) : avaliacao;
+}
 const rotuloDaAvaliacao = (a) => soRecuperacao(a) ? "Recuperação" : a.nome || `${a.ordem}ª avaliação`;
 const plural = (n, um, muitos) => `${n} ${n > 1 ? muitos : um}`;
 
@@ -934,7 +951,7 @@ function abrirNotaDisciplina(disciplina) {
   disciplinaDaNota = disciplina;
   const grupo = disciplinasDaTurma(turmaDaNota).find((d) => d.disciplina === disciplina);
   if (!grupo) return;
-  if (!avaliacaoDaNota || !grupo.lista.some((a) => a.chave === avaliacaoDaNota.chave)) {
+  if (!avaliacaoDaNota || !grupo.lista.some((a) => a.chave === (avaliacaoDaNota.base ?? avaliacaoDaNota).chave)) {
     avaliacaoDaNota = grupo.lista[0];
   }
   desenharNotaDisciplina();
@@ -952,20 +969,28 @@ function desenharNotaDisciplina() {
     avaliacaoDaNota.data,
     avaliacaoDaNota.instrumento && capitalizar(avaliacaoDaNota.instrumento)
   ].filter(Boolean).join(" · ");
-  $("nota-avaliacoes").innerHTML = grupo.lista.map((a) => `
-    <button type="button" class="${a.chave === avaliacaoDaNota.chave ? "ativa" : ""}" data-escolher-avaliacao="${escapar(a.chave)}">${soRecuperacao(a) ? "Rec" : `${grupo.lista.filter(pronta).indexOf(a) + 1}ª`}${faltaLancar(a) ? "" : " ✓"}</button>`).join("");
+  const botao = (chave, rotulo) => `
+    <button type="button" class="${chave === avaliacaoDaNota.chave ? "ativa" : ""}" data-escolher-avaliacao="${escapar(chave)}">${rotulo}</button>`;
+  $("nota-avaliacoes").innerHTML = grupo.lista.map((a) => {
+    const rotulo = soRecuperacao(a) ? "Rec" : `${grupo.lista.filter(pronta).indexOf(a) + 1}ª`;
+    return botao(a.chave, rotulo + (faltaLancar(a) ? "" : " ✓")) + (precisaRec(a) ? botao(`${a.chave}|rec`, `Rec ${rotulo}`) : "");
+  }).join("");
   const foraDoSiaep = !avaliacaoDaNota.noDiario;
   const aviso = $("nota-aviso");
   aviso.hidden = !foraDoSiaep;
-  aviso.textContent = foraDoSiaep ? "Esta avaliação ainda não está no SIAEP. A nota fica guardada na planilha, e o Mestrão lança depois que a avaliação entrar no diário." : "";
+  aviso.textContent = !foraDoSiaep ? ""
+    : avaliacaoDaNota.rec
+      ? "A recuperação desta avaliação ainda não está no SIAEP. A nota fica guardada na planilha, e o Mestrão lança depois que ela entrar no diário."
+      : "Esta avaliação ainda não está no SIAEP. A nota fica guardada na planilha, e o Mestrão lança depois que a avaliação entrar no diário.";
   desenharNotaAlunos();
 }
 
 function desenharNotaAlunos() {
-  alunosDaNota = (grade?.turmas.find((t) => t.nome === turmaDaNota)?.alunos ?? [])
-    .slice()
-    .sort((a, b) => a.localeCompare(b, "pt-BR"));
   const notas = avaliacaoDaNota?.notas ?? {};
+  // Na recuperação, só quem ficou abaixo de 6 ou sem nota — e quem já tem nota nela.
+  alunosDaNota = (grade?.turmas.find((t) => t.nome === turmaDaNota)?.alunos ?? [])
+    .filter((aluno) => !avaliacaoDaNota?.rec || abaixoDe6(avaliacaoDaNota.base.notas?.[aluno]) || notas[aluno])
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
   $("nota-alunos").innerHTML = alunosDaNota.map((nome, i) => {
     const valor = notas[nome] ?? "";
     return `
@@ -1031,7 +1056,8 @@ function guardarNota() {
   avaliacaoDaNota.notas = { ...(avaliacaoDaNota.notas ?? {}), [nome]: valor };
   guardar(CHAVES.grade, grade);
   $("folha-nota").close();
-  if (telaAtual === "nota-disciplina") desenharNotaAlunos();
+  // A faixa também: a nota guardada pode acender a "Rec" da avaliação.
+  if (telaAtual === "nota-disciplina") desenharNotaDisciplina();
   desenharChip();
   esvaziarFilaDeNotas();
 }
@@ -1092,7 +1118,7 @@ document.addEventListener("click", (evento) => {
   else if (alvo.dataset.notaTurma) abrirNotaTurma(alvo.dataset.notaTurma);
   else if (alvo.dataset.notaDisciplina) abrirNotaDisciplina(alvo.dataset.notaDisciplina);
   else if (alvo.dataset.escolherAvaliacao) {
-    const escolhida = avaliacoesDoPeriodo().find((a) => a.chave === alvo.dataset.escolherAvaliacao);
+    const escolhida = alvoDaNota(alvo.dataset.escolherAvaliacao);
     if (escolhida) {
       avaliacaoDaNota = escolhida;
       desenharNotaDisciplina();

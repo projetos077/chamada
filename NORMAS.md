@@ -55,6 +55,10 @@ O caminho é o que ele pediu: **Notas → turmas → disciplinas → alunos**.
   recuperação, como "Recuperação" (Rec), e só com nota registrada; rascunho vazio não aparece
   nem conta. A disciplina sem nota do Mestrão (`periodo.semNota`) some, e a turma só com ela
   (a eletiva) também. A numeração é a posição entre as que aparecem.
+- **A recuperação da avaliação** (20/10/2026): com alguma nota guardada e alguém abaixo de 6
+  ou sem nota, aparece "Rec Nª" ao lado dela, só com esses estudantes (e quem já tem nota
+  nela). A nota vai com a chave `<avaliação>|rec` (`chaveDaRecuperacao` do Mestre.Core), e o
+  carteiro a devolve em `notasRec`. Sem data de recuperação no SIAEP, a tela avisa.
 - **Guardar não envia ao SIAEP.** A nota entra na fila do aparelho
   (`chamada:fila-notas`) antes de sair, e só sai quando a planilha responde — o envio
   continua sendo do Mestrão, com conferência.

@@ -344,7 +344,9 @@ function lerAvaliacoes(livro) {
       instrumento: texto(linha[6]),
       recuperacao: texto(linha[7]),
       noDiario: normalizado(linha[8]) === "SIM",
-      notas: notas.get(texto(linha[0])) || {}
+      notas: notas.get(texto(linha[0])) || {},
+      // A recuperação da avaliação, com a chave "<avaliação>|rec" (20/10/2026).
+      notasRec: notas.get(texto(linha[0]) + "|rec") || {}
     }));
 }
 
@@ -402,7 +404,9 @@ function gravarNota(livro, nota) {
   if (!nota || !texto(nota.chave) || !texto(nota.aluno)) throw new Error("Nota incompleta.");
   const chave = texto(nota.chave);
   const aluno = texto(nota.aluno);
-  const avaliacao = lerAvaliacoes(livro).find((a) => a.chave === chave);
+  // "<avaliação>|rec" é a recuperação dela: grava na mesma aba, com a sua chave.
+  const base = chave.replace(/\|rec$/, "");
+  const avaliacao = lerAvaliacoes(livro).find((a) => a.chave === base);
   if (!avaliacao) return recusa("A avaliação " + chave + " não está mais na planilha.");
   const valor = notaDaRegua(nota.valor);
 

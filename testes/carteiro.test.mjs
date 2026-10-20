@@ -260,3 +260,15 @@ test("ler devolve as linhas para o Mestrão, e nada quando a versão não mudou"
   assert.equal(r.linhas[1][2], "ANA GABRIELA SOUSA");
   assert.deepEqual(c.post({ acao: "ler", desde: versao }), { ok: true, versao, mudou: false });
 });
+
+test("a recuperação grava com a chave <avaliação>|rec e volta em notasRec, sem tocar na nota da avaliação", () => {
+  const c = carteiro();
+  gerarComAvaliacoes(c, "SIM");
+  c.post(nota("26PMI-INT-300|FISICA|1", "CARLOS DANIEL LIMA", "4"));
+  const r = c.post(nota("26PMI-INT-300|FISICA|1|rec", "CARLOS DANIEL LIMA", "7"));
+  assert.equal(r.ok, true, r.erro);
+  assert.deepEqual(notas(c)[2], ["26PMI-INT-300|FISICA|1|rec", "26PMI-INT-300", "FISICA", "1", "CARLOS DANIEL LIMA", "7"]);
+  const a = c.post({ acao: "grade" }).avaliacoes.find((x) => x.chave === "26PMI-INT-300|FISICA|1");
+  assert.deepEqual(a.notas, { "CARLOS DANIEL LIMA": "4" });
+  assert.deepEqual(a.notasRec, { "CARLOS DANIEL LIMA": "7" });
+});
