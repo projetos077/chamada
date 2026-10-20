@@ -818,7 +818,20 @@ function mostrarResultado(aula, resultado) {
 // alto da disciplina. **Guardar não envia ao SIAEP**: o Mestrão lê a planilha e
 // lança, com conferência.
 
-const avaliacoesDoPeriodo = () => grade?.avaliacoes ?? [];
+// O que aparece (20/10/2026): a avaliação com nome, data e instrumento; a linha só de
+// recuperação, como "Recuperação", e só com nota registrada; nada da disciplina sem nota
+// (`periodo.semNota`, do Mestrão). Rascunho vazio não conta nem aparece.
+const semNotaNoMestrao = (turma, disciplina) => (grade?.periodo?.semNota ?? []).includes(`${turma}|${disciplina}`);
+const pronta = (a) => Boolean(a.nome && a.data && a.instrumento);
+const soRecuperacao = (a) => !pronta(a) && Boolean(a.recuperacao);
+const temNota = (a) => Object.values(a.notas ?? {}).some((nota) => String(nota).trim());
+const aparece = (a) => !semNotaNoMestrao(a.turma, a.disciplina) && (pronta(a) || (soRecuperacao(a) && temNota(a)));
+const avaliacoesDoPeriodo = () => (grade?.avaliacoes ?? []).filter(aparece);
+/** A turma em que toda disciplina é sem nota (a eletiva) não aparece em Notas. */
+const turmaSemNota = (turma) => {
+  const disciplinas = [...new Set((turma.aulas ?? []).map((c) => c.disciplina).filter(Boolean))];
+  return disciplinas.length > 0 && disciplinas.every((d) => semNotaNoMestrao(turma.nome, d));
+};
 const avaliacoesDaTurma = (nome) => avaliacoesDoPeriodo().filter((a) => a.turma === nome);
 // `noDiario` (NO DIÁRIO = SIM) diz que a **avaliação** existe no SIAEP — não que as notas
 // entraram (20/10/2026: tudo aparecia "lançado" sem nota nenhuma). É a avaliação no SIAEP que
@@ -826,7 +839,7 @@ const avaliacoesDaTurma = (nome) => avaliacoesDoPeriodo().filter((a) => a.turma 
 const alunosDaTurma = (nome) => grade?.turmas.find((t) => t.nome === nome)?.alunos ?? [];
 const semNota = (a) => alunosDaTurma(a.turma).filter((aluno) => !a.notas?.[aluno]).length;
 const faltaLancar = (a) => semNota(a) > 0;
-const rotuloDaAvaliacao = (a) => a.nome || `${a.ordem}ª avaliação`;
+const rotuloDaAvaliacao = (a) => soRecuperacao(a) ? "Recuperação" : a.nome || `${a.ordem}ª avaliação`;
 const plural = (n, um, muitos) => `${n} ${n > 1 ? muitos : um}`;
 
 /** As disciplinas da turma, cada uma com as avaliações dela na ordem do período. */
@@ -844,7 +857,7 @@ function disciplinasDaTurma(nome) {
 
 /** Notas · turmas: o menu fica acessível mesmo antes de o Mestrão criar avaliações. */
 function desenharNotas() {
-  const turmas = emOrdemDeSerie(grade?.turmas ?? []);
+  const turmas = emOrdemDeSerie(grade?.turmas ?? []).filter((turma) => !turmaSemNota(turma));
   $("notas-periodo").textContent = [grade?.periodo?.momento && `${grade.periodo.momento}º período`, turmas.length && `${turmas.length} turmas`].filter(Boolean).join(" · ");
   if (!avaliacoesDoPeriodo().length) {
     $("notas-conteudo").innerHTML = `<div class="lista" style="margin-top:16px"><p class="vazio">A planilha ainda não tem avaliações — quem gera é o Mestrão.</p></div>`;
@@ -940,7 +953,7 @@ function desenharNotaDisciplina() {
     avaliacaoDaNota.instrumento && capitalizar(avaliacaoDaNota.instrumento)
   ].filter(Boolean).join(" · ");
   $("nota-avaliacoes").innerHTML = grupo.lista.map((a) => `
-    <button type="button" class="${a.chave === avaliacaoDaNota.chave ? "ativa" : ""}" data-escolher-avaliacao="${escapar(a.chave)}">${a.ordem}ª${faltaLancar(a) ? "" : " ✓"}</button>`).join("");
+    <button type="button" class="${a.chave === avaliacaoDaNota.chave ? "ativa" : ""}" data-escolher-avaliacao="${escapar(a.chave)}">${soRecuperacao(a) ? "Rec" : `${grupo.lista.filter(pronta).indexOf(a) + 1}ª`}${faltaLancar(a) ? "" : " ✓"}</button>`).join("");
   const foraDoSiaep = !avaliacaoDaNota.noDiario;
   const aviso = $("nota-aviso");
   aviso.hidden = !foraDoSiaep;

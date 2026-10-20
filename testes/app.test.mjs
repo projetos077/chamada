@@ -335,3 +335,33 @@ test("as turmas em ordem de série: eletiva, 1ª, 2ª, 3ª (19/10/2026)", () => 
   const ordem = [...app.porId.get("turmas-conteudo").innerHTML.matchAll(/data-turma="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(ordem, ["26EI11", "26PMI-EPT-100", "26PMI-ADM-200", "26PMI-INT-200", "26PMI-ADM-300"]);
 });
+
+// 20/10/2026: só aparece avaliação com nome, data e instrumento; a linha só de recuperação
+// aparece como "Recuperação" quando tem nota; a disciplina sem nota do Mestrão some.
+test("Notas: rascunho vazio some, recuperação sem nota some, com nota aparece como Recuperação", () => {
+  const rascunho = { chave: TURMA + "|FISICA|3", turma: TURMA, disciplina: "FISICA", ordem: 3, nome: "", data: "", instrumento: "", recuperacao: "", noDiario: false, notas: {} };
+  const rec = (notas) => ({ chave: TURMA + "|FISICA|4", turma: TURMA, disciplina: "FISICA", ordem: 4, nome: "", data: "", instrumento: "", recuperacao: "12/10/2026", noDiario: false, notas });
+  const sem = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, [...AVALIACOES(true), rascunho, rec({})]));
+  sem.contexto.abrirNotas();
+  assert.match(sem.porId.get("notas-conteudo").innerHTML, /3 avaliações com notas a lançar/);
+
+  const com = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, [...AVALIACOES(true), rascunho, rec({ "ANA GABRIELA SOUSA": "6" })]));
+  com.contexto.abrirNotaTurma(TURMA);
+  com.contexto.abrirNotaDisciplina("FISICA");
+  const faixa = com.porId.get("nota-avaliacoes").innerHTML;
+  assert.match(faixa, />1ª</);
+  assert.match(faixa, />2ª</);
+  assert.match(faixa, />Rec</);
+  assert.doesNotMatch(faixa, />3ª|>4ª/);
+});
+
+test("Notas: a disciplina sem nota do Mestrão some, e a turma só com ela também", () => {
+  const grade = gradeCom(diaFeito(), { momento: "4", semNota: [TURMA + "|EDUCACAO DIGITAL(IS)", "26EI11|FISICA"] }, undefined, AVALIACOES(true));
+  grade.turmas.push({ nome: "26EI11", alunos: ["BRUNO ALVES"], aulas: [coluna("18/09/2026", 1, [""])] });
+  const app = abrir(grade);
+  app.contexto.abrirNotas();
+  const html = app.porId.get("notas-conteudo").innerHTML;
+  assert.doesNotMatch(html, /26EI11/);
+  assert.match(html, /2 avaliações com notas a lançar/);
+  assert.doesNotMatch(html, /Educação Digital/);
+});

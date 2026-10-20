@@ -51,6 +51,10 @@ O caminho é o que ele pediu: **Notas → turmas → disciplinas → alunos**.
   é nela que o Mestrão lança. A avaliação fora do SIAEP também aceita nota, com aviso.
   "A lançar" conta aluno sem nota; o celular não sabe se a nota já entrou no diário.
 - **Toda turma aparece em Notas**, mesmo sem avaliação: "Avaliações ainda não lançadas".
+- **O que aparece** (20/10/2026): avaliação com nome, data e instrumento; a linha só de
+  recuperação, como "Recuperação" (Rec), e só com nota registrada; rascunho vazio não aparece
+  nem conta. A disciplina sem nota do Mestrão (`periodo.semNota`) some, e a turma só com ela
+  (a eletiva) também. A numeração é a posição entre as que aparecem.
 - **Guardar não envia ao SIAEP.** A nota entra na fila do aparelho
   (`chamada:fila-notas`) antes de sair, e só sai quando a planilha responde — o envio
   continua sendo do Mestrão, com conferência.
