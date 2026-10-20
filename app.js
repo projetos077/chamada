@@ -817,9 +817,12 @@ function mostrarResultado(aula, resultado) {
 
 const avaliacoesDoPeriodo = () => grade?.avaliacoes ?? [];
 const avaliacoesDaTurma = (nome) => avaliacoesDoPeriodo().filter((a) => a.turma === nome);
-/** Pronta é a que tem nome, instrumento e data — a mesma régua do Mestre.Core. */
-const pronta = (a) => Boolean(a.nome && a.data && a.instrumento);
-const faltaLancar = (a) => pronta(a) && !a.noDiario;
+// `noDiario` (NO DIÁRIO = SIM) diz que a **avaliação** existe no SIAEP — não que as notas
+// entraram (20/10/2026: tudo aparecia "lançado" sem nota nenhuma). É a avaliação no SIAEP que
+// deixa o Mestrão lançar a nota, então ela nunca tranca o campo. A régua daqui é a nota digitada.
+const alunosDaTurma = (nome) => grade?.turmas.find((t) => t.nome === nome)?.alunos ?? [];
+const semNota = (a) => alunosDaTurma(a.turma).filter((aluno) => !a.notas?.[aluno]).length;
+const faltaLancar = (a) => semNota(a) > 0;
 const rotuloDaAvaliacao = (a) => a.nome || `${a.ordem}ª avaliação`;
 const plural = (n, um, muitos) => `${n} ${n > 1 ? muitos : um}`;
 
@@ -838,25 +841,26 @@ function disciplinasDaTurma(nome) {
 
 /** Notas · turmas: o menu fica acessível mesmo antes de o Mestrão criar avaliações. */
 function desenharNotas() {
-  const turmas = emOrdemDeSerie(grade?.turmas ?? []).filter((turma) => avaliacoesDaTurma(turma.nome).length);
+  const turmas = emOrdemDeSerie(grade?.turmas ?? []);
   $("notas-periodo").textContent = [grade?.periodo?.momento && `${grade.periodo.momento}º período`, turmas.length && `${turmas.length} turmas`].filter(Boolean).join(" · ");
-  if (!turmas.length) {
+  if (!avaliacoesDoPeriodo().length) {
     $("notas-conteudo").innerHTML = `<div class="lista" style="margin-top:16px"><p class="vazio">A planilha ainda não tem avaliações — quem gera é o Mestrão.</p></div>`;
     return;
   }
   $("notas-conteudo").innerHTML = `<div class="cartoes">${turmas.map((turma) => {
     const lista = avaliacoesDaTurma(turma.nome);
     const lancar = lista.filter(faltaLancar).length;
-    const prontas = lista.filter(pronta);
+    const foraDoSiaep = lista.filter((a) => !a.noDiario).length;
     const disciplinas = [...new Set(lista.map((a) => a.disciplina))].map(capitalizar);
-    const situacao = lancar
-      ? `<em>${plural(lancar, "avaliação a lançar", "avaliações a lançar")}</em>`
-      : prontas.length && prontas.every((a) => a.noDiario)
-        ? `<em class="ok">✓ Todas lançadas</em>`
-        : `<em>${plural(lista.length, "avaliação", "avaliações")}</em>`;
+    const situacao = !lista.length
+      ? `<em>Avaliações ainda não lançadas</em>`
+      : [
+        lancar ? `<em>${plural(lancar, "avaliação com notas a lançar", "avaliações com notas a lançar")}</em>` : `<em class="ok">✓ Notas completas</em>`,
+        foraDoSiaep ? `<em>${plural(foraDoSiaep, "avaliação fora do SIAEP", "avaliações fora do SIAEP")}</em>` : ""
+      ].join("");
     return `
-      <button class="cartao-turma ${lancar ? "" : "completa"}" data-nota-turma="${escapar(turma.nome)}">
-        <span class="sinal">${lancar || "✓"}</span>
+      <button class="cartao-turma ${lista.length && !lancar ? "completa" : ""}" data-nota-turma="${escapar(turma.nome)}">
+        <span class="sinal">${!lista.length ? "—" : lancar || "✓"}</span>
         <span class="meio"><strong>${escapar(nomeDa(turma))}</strong><span>${escapar([...disciplinas, `${turma.alunos.length} alunos`].join(" · "))}</span>${situacao}</span>
         <span class="seta">›</span>
       </button>`;
@@ -891,8 +895,12 @@ function desenharNotaTurma() {
   $("nota-turma-resumo").textContent = [
     `${turma.alunos.length} alunos`,
     plural(lista.length, "avaliação", "avaliações"),
-    lancar ? `${lancar} a lançar` : "todas lançadas"
+    !lista.length ? "avaliações ainda não lançadas" : lancar ? `${lancar} com notas a lançar` : "notas completas"
   ].join(" · ");
+  if (!lista.length) {
+    $("nota-disciplinas").innerHTML = `<div class="lista" style="margin-top:16px"><p class="vazio">As avaliações desta turma ainda não foram lançadas — lance no Mestrão, em Avaliações, e gere a planilha de novo.</p></div>`;
+    return;
+  }
   $("nota-disciplinas").innerHTML = `<h2 class="titulo-secao">Disciplinas</h2><div class="lista" style="margin-top:14px">${disciplinasDaTurma(turmaDaNota).map(({ disciplina, lista: daDisciplina }) => {
     const falta = daDisciplina.filter(faltaLancar).length;
     const instrumentos = [...new Set(daDisciplina.map((a) => a.instrumento).filter(Boolean))].map(capitalizar);
@@ -929,11 +937,11 @@ function desenharNotaDisciplina() {
     avaliacaoDaNota.instrumento && capitalizar(avaliacaoDaNota.instrumento)
   ].filter(Boolean).join(" · ");
   $("nota-avaliacoes").innerHTML = grupo.lista.map((a) => `
-    <button type="button" class="${a.chave === avaliacaoDaNota.chave ? "ativa" : ""}" data-escolher-avaliacao="${escapar(a.chave)}">${a.ordem}ª${a.noDiario ? " 🔒" : ""}</button>`).join("");
-  const travada = Boolean(avaliacaoDaNota.noDiario);
+    <button type="button" class="${a.chave === avaliacaoDaNota.chave ? "ativa" : ""}" data-escolher-avaliacao="${escapar(a.chave)}">${a.ordem}ª${faltaLancar(a) ? "" : " ✓"}</button>`).join("");
+  const foraDoSiaep = !avaliacaoDaNota.noDiario;
   const aviso = $("nota-aviso");
-  aviso.hidden = !travada;
-  aviso.textContent = travada ? "Esta avaliação já está no diário do SIAEP: só para ver. Quem muda agora é o Mestrão." : "";
+  aviso.hidden = !foraDoSiaep;
+  aviso.textContent = foraDoSiaep ? "Esta avaliação ainda não está no SIAEP. A nota fica guardada na planilha, e o Mestrão lança depois que a avaliação entrar no diário." : "";
   desenharNotaAlunos();
 }
 
@@ -941,7 +949,6 @@ function desenharNotaAlunos() {
   alunosDaNota = (grade?.turmas.find((t) => t.nome === turmaDaNota)?.alunos ?? [])
     .slice()
     .sort((a, b) => a.localeCompare(b, "pt-BR"));
-  const travada = Boolean(avaliacaoDaNota?.noDiario);
   const notas = avaliacaoDaNota?.notas ?? {};
   $("nota-alunos").innerHTML = alunosDaNota.map((nome, i) => {
     const valor = notas[nome] ?? "";
@@ -949,7 +956,7 @@ function desenharNotaAlunos() {
       <div class="aluno">
         <span class="n">${i + 1}</span>
         <span class="nome">${escapar(nome)}</span>
-        <button class="bt nota ${valor ? "" : "vazia"}" data-nota="${i}" aria-label="Nota de ${escapar(nome)}" ${travada ? "disabled" : ""}>${valor ? escapar(valor) : "—"}</button>
+        <button class="bt nota ${valor ? "" : "vazia"}" data-nota="${i}" aria-label="Nota de ${escapar(nome)}">${valor ? escapar(valor) : "—"}</button>
       </div>`;
   }).join("");
   const comNota = alunosDaNota.filter((nome) => notas[nome]).length;

@@ -51,10 +51,11 @@ etapa travava. Agora:
   Frequência. No fim, a lista de alunos com a nota no lugar do F e do J, e o **teclado
   numérico** (0 a 10, vírgula, Limpar, Guardar nota).
 - A nota é de uma **avaliação** (1ª, 2ª, Recuperação), escolhida no alto da disciplina.
-  Avaliação que já está no diário do SIAEP abre travada, só para ver.
+  Nenhuma trava: `NO DIÁRIO = SIM` é a avaliação no SIAEP, onde o Mestrão lança a nota
+  (20/10/2026). A que ainda não está no SIAEP aceita nota, com aviso.
 - **Guardar não envia ao SIAEP**: a nota entra na fila do aparelho e vai para a Planilha
   Google; quem lança no diário é o Mestrão, com conferência.
-- A aba só aparece quando a planilha tem avaliações — o Mestrão é quem gera a aba
+- Toda turma aparece; a sem avaliação diz "Avaliações ainda não lançadas" — o Mestrão é quem gera a aba
   `AVALIAÇÕES` (`CONTRATOS.md` §1). **Ao atualizar: publique uma versão nova do Apps
   Script**, porque o `carteiro/Codigo.gs` mudou.
 

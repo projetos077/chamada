@@ -38,17 +38,19 @@ O caminho é o que ele pediu: **Notas → turmas → disciplinas → alunos**.
 
 | Toque | Tela | O que mostra |
 |---|---|---|
-| 1 | `#tela-notas` | os cartões das turmas, iguais aos da Frequência, com "N avaliações a lançar" ou "✓ Todas lançadas" |
+| 1 | `#tela-notas` | os cartões das turmas, iguais aos da Frequência, com "N avaliações com notas a lançar", "✓ Notas completas" ou, sem avaliação, "Avaliações ainda não lançadas" |
 | 2 | `#tela-nota-turma` | as **disciplinas** da turma: "2 avaliações · Prova, Trabalho" |
-| 3 | `#tela-nota-disciplina` | a **avaliação escolhida no alto** (1ª, 2ª, 🔒) e os **alunos** embaixo, com a nota no lugar do F e do J |
+| 3 | `#tela-nota-disciplina` | a **avaliação escolhida no alto** (1ª, 2ª, ✓ quando todos têm nota) e os **alunos** embaixo, com a nota no lugar do F e do J |
 | — | `#folha-nota` | o **teclado numérico**: 0 a 10, vírgula, Limpar e Guardar nota |
 
 - A nota é de uma **avaliação** (`turma|disciplina|ordem`), escolhida na faixa do alto;
   ela abre na 1ª.
 - A régua é a do Mestrão: **0 a 10, uma casa decimal** (`Mestre.Core/notas.js`). Nota
   vazia é aluno ainda sem avaliação — não se escreve zero por ele.
-- **Avaliação já no diário** (`NO DIÁRIO = SIM`) fica travada, com a frase na tela: só para
-  ver, e quem muda é o Mestrão.
+- **`NO DIÁRIO = SIM` é a avaliação no SIAEP, não a nota** (20/10/2026). Não tranca nada:
+  é nela que o Mestrão lança. A avaliação fora do SIAEP também aceita nota, com aviso.
+  "A lançar" conta aluno sem nota; o celular não sabe se a nota já entrou no diário.
+- **Toda turma aparece em Notas**, mesmo sem avaliação: "Avaliações ainda não lançadas".
 - **Guardar não envia ao SIAEP.** A nota entra na fila do aparelho
   (`chamada:fila-notas`) antes de sair, e só sai quando a planilha responde — o envio
   continua sendo do Mestrão, com conferência.

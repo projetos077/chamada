@@ -395,8 +395,8 @@ function notaDaRegua(escrita) {
  *
  * Mesmas travas da chamada: a avaliação tem que existir, a régua é conferida
  * antes de escrever, e a confirmação é da planilha — relê a célula que gravou.
- * Avaliação já no diário não aceita nota: o diário é a fonte, e quem muda é o
- * Mestrão (NO DIÁRIO = SIM, a mesma ideia da aula validada pelo GAF).
+ * NO DIÁRIO = SIM quer dizer que a avaliação existe no SIAEP — não que a nota
+ * entrou —, e é justamente nela que o Mestrão lança: não tranca (20/10/2026).
  */
 function gravarNota(livro, nota) {
   if (!nota || !texto(nota.chave) || !texto(nota.aluno)) throw new Error("Nota incompleta.");
@@ -404,9 +404,6 @@ function gravarNota(livro, nota) {
   const aluno = texto(nota.aluno);
   const avaliacao = lerAvaliacoes(livro).find((a) => a.chave === chave);
   if (!avaliacao) return recusa("A avaliação " + chave + " não está mais na planilha.");
-  if (avaliacao.noDiario) {
-    return recusa("A nota de " + (avaliacao.nome || "avaliação") + " já está no diário do SIAEP — quem muda agora é o Mestrão.");
-  }
   const valor = notaDaRegua(nota.valor);
 
   const aba = abaDeNotas(livro);

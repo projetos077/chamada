@@ -189,19 +189,42 @@ test("a aba Notas permanece disponível sem avaliações e mostra orientação",
   assert.doesNotMatch(readFileSync(new URL("../index.html", import.meta.url), "utf8").match(/<button[^>]*id="aba-notas"[^>]*>/)[0], /hidden/);
 });
 
-test("Notas · turmas: o cartão conta as avaliações a lançar", () => {
+test("Notas · turmas: o cartão conta as avaliações com notas a lançar", () => {
   const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
   app.contexto.abrirNotas();
   const html = app.porId.get("notas-conteudo").innerHTML;
   assert.match(html, /data-nota-turma="26PMI-INT-300"/);
-  assert.match(html, /3 avaliações a lançar/);
+  assert.match(html, /3 avaliações com notas a lançar/);
+  assert.match(html, /3 avaliações fora do SIAEP/);
   assert.match(html, /Física · Educação Digital/);
 });
 
-test("Notas · turmas: com tudo no diário, o cartão diz Todas lançadas", () => {
+// 20/10/2026: NO DIÁRIO é a avaliação no SIAEP, não a nota. Avaliações lançadas sem nota
+// nenhuma apareciam "✓ Todas lançadas".
+test("Notas · turmas: avaliação no SIAEP sem nota continua com notas a lançar", () => {
   const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES(true)));
   app.contexto.abrirNotas();
-  assert.match(app.porId.get("notas-conteudo").innerHTML, /✓ Todas lançadas/);
+  const html = app.porId.get("notas-conteudo").innerHTML;
+  assert.match(html, /3 avaliações com notas a lançar/);
+  assert.doesNotMatch(html, /lançadas|fora do SIAEP/);
+});
+
+test("Notas · turmas: com nota de todos, o cartão diz Notas completas", () => {
+  const todas = AVALIACOES(true).map((a) => ({ ...a, notas: { "ANA GABRIELA SOUSA": "7", "CARLOS DANIEL LIMA": "9" } }));
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, todas));
+  app.contexto.abrirNotas();
+  assert.match(app.porId.get("notas-conteudo").innerHTML, /✓ Notas completas/);
+});
+
+test("Notas · turmas: a turma sem avaliação aparece e diz que elas não foram lançadas", () => {
+  const grade = gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES(true));
+  grade.turmas.push({ nome: "26PMI-INT-100", alunos: ["BRUNO ALVES"], aulas: [] });
+  const app = abrir(grade);
+  app.contexto.abrirNotas();
+  const html = app.porId.get("notas-conteudo").innerHTML;
+  assert.match(html, /data-nota-turma="26PMI-INT-100"[\s\S]*Avaliações ainda não lançadas/);
+  app.contexto.abrirNotaTurma("26PMI-INT-100");
+  assert.match(app.porId.get("nota-disciplinas").innerHTML, /ainda não foram lançadas/);
 });
 
 test("Notas · disciplinas: uma linha por disciplina, com as avaliações dela", () => {
@@ -234,13 +257,21 @@ test("Notas · alunos: a nota que já existe, o campo vazio e as contas", () => 
   assert.match(app.porId.get("nota-avaliacao").textContent, /Física · 2ª avaliação · 11\/09\/2026 · Trabalho/);
 });
 
-test("avaliação já no diário: o campo fica travado e a tela diz por quê", () => {
+test("avaliação no SIAEP abre para digitar a nota, sem aviso", () => {
   const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES(true)));
   app.contexto.abrirNotaTurma(TURMA);
   app.contexto.abrirNotaDisciplina("FISICA");
-  assert.match(app.porId.get("nota-alunos").innerHTML, /disabled/);
+  assert.doesNotMatch(app.porId.get("nota-alunos").innerHTML, /disabled/);
+  assert.equal(app.porId.get("nota-aviso").hidden, true);
+});
+
+test("avaliação fora do SIAEP também aceita nota, e a tela avisa", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  assert.doesNotMatch(app.porId.get("nota-alunos").innerHTML, /disabled/);
   assert.equal(app.porId.get("nota-aviso").hidden, false);
-  assert.match(app.porId.get("nota-aviso").textContent, /já está no diário/);
+  assert.match(app.porId.get("nota-aviso").textContent, /ainda não está no SIAEP/);
 });
 
 test("tocar no campo da nota abre o teclado", () => {

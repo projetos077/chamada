@@ -226,12 +226,12 @@ test("avaliação que não está na planilha é recusada", () => {
   assert.match(r.erro, /não está mais na planilha/);
 });
 
-test("avaliação já no diário não aceita nota: quem muda é o Mestrão", () => {
+// NO DIÁRIO = SIM é a avaliação no SIAEP — onde o Mestrão lança a nota (20/10/2026).
+test("avaliação no SIAEP aceita nota", () => {
   const c = carteiro();
   gerarComAvaliacoes(c, "SIM");
   const r = c.post(nota("26PMI-INT-300|FISICA|2", "ANA GABRIELA SOUSA", "8"));
-  assert.equal(r.ok, false);
-  assert.match(r.erro, /já está no diário/);
+  assert.equal(r.ok, true, r.erro);
 });
 
 test("gerar de novo não apaga as notas do celular", () => {
