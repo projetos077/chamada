@@ -321,3 +321,4 @@ textarea { font: inherit; -webkit-user-select: text; user-select: text; }
 #btn-salvar-notas { display: none; }
 #tela-nota-disciplina.ativa #btn-salvar-notas { display: block; }
 .gira.grande { display: inline-block; width: 34px; height: 34px; border: 4px solid rgba(26, 26, 26, .25); border-top-color: var(--nanquim); border-radius: 50%; animation: gira .8s linear infinite; }
+#btn-salvar-notas { bottom: calc(96px + var(--pe)); z-index: 30; }
