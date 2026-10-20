@@ -26,7 +26,7 @@
 // Chamada 22 (19/10/2026): as turmas na ordem do Mestrão — eletiva, 1ª, 2ª e 3ª série.
 // Chamada 23 (19/10/2026): Notas identifica os níveis Turmas → Disciplinas → Estudantes.
 
-const VERSAO = "31";
+const VERSAO = "32";
 const CHAVES = {
   conexao: "chamada:conexao",
   grade: "chamada:grade",
@@ -1070,7 +1070,8 @@ function abrirTeclado(indice) {
   notaDigitada = avaliacaoDaNota.notas?.[nome] ?? "";
   $("nota-aluno").textContent = nome;
   $("nota-visor").textContent = notaDigitada || "—";
-  $("folha-nota").showModal();
+  if (!$("folha-nota").open) $("folha-nota").showModal();
+  document.querySelector("#nota-alunos .marcado")?.scrollIntoView({ block: "start", behavior: "smooth" });
 }
 
 function digitar(digito) {
@@ -1087,7 +1088,7 @@ function apagarDigito() {
 }
 
 /** Guardar põe a nota na fila do aparelho, como a chamada — e não envia ao SIAEP. */
-function guardarNota() {
+function guardarNota(proximo = false) {
   const nome = alunosDaNota[notaAluno];
   if (!nome || !avaliacaoDaNota) return;
   const valor = notaDigitada.trim();
@@ -1097,18 +1098,35 @@ function guardarNota() {
     return;
   }
   const antes = avaliacaoDaNota.notas?.[nome] ?? "";
+  if (valor === antes) return seguirDaNota(proximo);
   const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, chave: avaliacaoDaNota.chave, aluno: nome, valor, antes };
   filaNotas = [...filaNotas.filter((i) => !(i.chave === item.chave && i.aluno === item.aluno)), item];
   guardar(CHAVES.filaNotas, filaNotas);
   // A tela mostra o que ele digitou; a planilha confirma — ou devolve — depois.
   avaliacaoDaNota.notas = { ...(avaliacaoDaNota.notas ?? {}), [nome]: valor };
   guardar(CHAVES.grade, grade);
-  $("folha-nota").close();
   // A faixa também: a nota guardada pode acender a "Rec" da avaliação.
   if (telaAtual === "nota-disciplina") desenharNotaDisciplina();
   desenharChip();
   desenharSalvarNotas();
+  seguirDaNota(proximo);
 }
+
+/** "Próximo" abre o teclado no estudante seguinte; no último, ou ao tocar fora, o teclado sai. */
+function seguirDaNota(proximo) {
+  if (proximo && notaAluno + 1 < alunosDaNota.length) {
+    abrirTeclado(notaAluno + 1);
+    return;
+  }
+  $("folha-nota").close();
+}
+
+// Tocar fora do teclado guarda o que está digitado e o fecha.
+$("folha-nota").addEventListener("click", (evento) => {
+  const caixa = evento.currentTarget.getBoundingClientRect();
+  const dentro = evento.clientX >= caixa.left && evento.clientX <= caixa.right && evento.clientY >= caixa.top && evento.clientY <= caixa.bottom;
+  if (evento.target === evento.currentTarget && !dentro) guardarNota();
+});
 
 // ── Conectar ────────────────────────────────────────────────────────────────
 
@@ -1177,7 +1195,7 @@ document.addEventListener("click", (evento) => {
   else if (alvo.hasAttribute("data-limpar")) {
     notaDigitada = "";
     $("nota-visor").textContent = "—";
-  } else if (alvo.hasAttribute("data-guardar-nota")) guardarNota();
+  } else if (alvo.hasAttribute("data-guardar-nota")) guardarNota(true);
   else if (alvo.id === "btn-salvar-notas") salvarNotas();
   else if (alvo.hasAttribute("data-fechar-salvando")) $("folha-salvando").close();
   else if (alvo.dataset.falta) marcar(Number(alvo.dataset.falta), "F");

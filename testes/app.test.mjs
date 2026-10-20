@@ -330,6 +330,21 @@ test("a nota ainda na fila volta por cima da grade que chega da planilha, e o es
   assert.match(app.porId.get("nota-alunos").innerHTML, />9<\/button>/);
 });
 
+test("Próximo guarda e abre o teclado no estudante seguinte; no último, o teclado sai", () => {
+  const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
+  app.contexto.abrirNotaTurma(TURMA);
+  app.contexto.abrirNotaDisciplina("FISICA");
+  app.contexto.abrirTeclado(0);
+  app.contexto.digitar("8");
+  app.contexto.guardarNota(true);
+  assert.equal(app.porId.get("folha-nota").open, true);
+  assert.equal(app.porId.get("nota-aluno").textContent, "CARLOS DANIEL LIMA");
+  app.contexto.digitar("6");
+  app.contexto.guardarNota(true);
+  assert.equal(app.porId.get("folha-nota").open, false);
+  assert.equal(JSON.parse(app.localStorage.getItem("chamada:fila-notas")).length, 2);
+});
+
 test("nota fora da régua não entra na fila", () => {
   const app = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
   app.contexto.abrirNotaTurma(TURMA);

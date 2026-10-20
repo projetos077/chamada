@@ -10,7 +10,7 @@
   <title>Chamada</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="estilo.css?v=31">
+  <link rel="stylesheet" href="estilo.css?v=32">
   <!-- O tema antes do primeiro desenho, para não piscar o G2 em quem escolheu outro. -->
   <script>try { const t = JSON.parse(localStorage.getItem("chamada:tema")); if (t) document.documentElement.dataset.tema = t; } catch {}</script>
 </head>
@@ -146,7 +146,7 @@
   <dialog id="folha-nota" class="folha">
     <form method="dialog">
       <div class="pega"></div>
-      <small>Nota · 0 a 10, uma casa</small>
+      <small>Nota · 0 a 10, até duas casas</small>
       <h3 id="nota-aluno"></h3>
       <div id="nota-visor" class="visor-nota">—</div>
       <div id="teclado-nota" class="teclado">
@@ -163,7 +163,7 @@
         <button type="button" data-digito="0">0</button>
         <button type="button" data-apagar="1">⌫</button>
         <button type="button" data-limpar="1" class="larga sec">Limpar</button>
-        <button type="button" data-guardar-nota="1" class="guarda">Salvar para o Mestrão</button>
+        <button type="button" data-guardar-nota="1" class="guarda">Próximo</button>
       </div>
     </form>
   </dialog>
@@ -211,6 +211,6 @@
   </nav>
 
   <div id="aviso-rapido" role="status"></div>
-  <script src="app.js?v=31"></script>
+  <script src="app.js?v=32"></script>
 </body>
 </html>
