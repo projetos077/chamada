@@ -41,7 +41,7 @@ O caminho é o que ele pediu: **Notas → turmas → disciplinas → alunos**.
 | 1 | `#tela-notas` | os cartões das turmas, iguais aos da Frequência, com "N avaliações com notas a lançar", "✓ Notas completas" ou, sem avaliação, "Avaliações ainda não lançadas" |
 | 2 | `#tela-nota-turma` | as **disciplinas** da turma: "2 avaliações · Prova, Trabalho" |
 | 3 | `#tela-nota-disciplina` | a **avaliação escolhida no alto** (1ª, 2ª, ✓ quando todos têm nota) e os **alunos** embaixo, com a nota no lugar do F e do J |
-| — | `#folha-nota` | o **teclado numérico**: 0 a 10, vírgula, Limpar e Guardar nota |
+| — | `#folha-nota` | o **teclado numérico**: 0 a 10, vírgula, Limpar e Salvar para o Mestrão |
 
 - A nota é de uma **avaliação** (`turma|disciplina|ordem`), escolhida na faixa do alto;
   ela abre na 1ª.

@@ -20,7 +20,7 @@
 | Notas · Turmas | `#tela-notas` | aba Notas, sempre visível | cartões das turmas; sem avaliações, orientação para gerá-las no Mestrão |
 | Notas · Disciplinas | `#tela-nota-turma` | toque numa turma | uma linha por disciplina da turma |
 | Notas · Estudantes | `#tela-nota-disciplina` | toque numa disciplina | avaliação escolhida no alto e lista de estudantes com suas notas |
-| Folha da nota | `#folha-nota` | toque no campo da nota | o teclado numérico (0 a 10, vírgula, Limpar, Guardar nota) |
+| Folha da nota | `#folha-nota` | toque no campo da nota | o teclado numérico (0 a 10, vírgula, Limpar, Salvar para o Mestrão) |
 | Folha de Ajustes | `#folha-ajustes` | ⚙︎ | tema, horários juntos/separados, buscar agora, trocar o código |
 
 O menu inferior (`#abas`) fica à vista em Hoje, Frequência e Turma; **some na chamada**
@@ -77,7 +77,7 @@ isso na folha do envio e guarda em `chamada:recibos`.
 | ver o que falta preencher no período | aba Frequência (o cartão conta “N a preencher”) |
 | ver o que falta lançar no SIAEP | idem, mais a linha “N feitas, falta lançar no SIAEP” |
 | mandar o que ficou na fila | toque no chip |
-| lançar as notas de uma avaliação | Notas → turma → disciplina → toque na nota → teclado → Guardar nota |
+| lançar as notas de uma avaliação | Notas → turma → disciplina → toque na nota → teclado → Salvar para o Mestrão |
 | ver o recibo de uma chamada antiga | não há tela de recibos: só a folha no momento do envio |
 
 ## O que o PWA não faz — e é de propósito

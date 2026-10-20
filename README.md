@@ -49,7 +49,7 @@ etapa travava. Agora:
 
 - A aba **Notas** no menu de baixo: **turmas → disciplinas → alunos**, no mesmo estilo da
   Frequência. No fim, a lista de alunos com a nota no lugar do F e do J, e o **teclado
-  numérico** (0 a 10, vírgula, Limpar, Guardar nota).
+  numérico** (0 a 10, vírgula, Limpar, Salvar para o Mestrão).
 - A nota é de uma **avaliação** (1ª, 2ª, Recuperação), escolhida no alto da disciplina.
   Nenhuma trava: `NO DIÁRIO = SIM` é a avaliação no SIAEP, onde o Mestrão lança a nota
   (20/10/2026). A que ainda não está no SIAEP aceita nota, com aviso.

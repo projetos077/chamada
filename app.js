@@ -725,7 +725,7 @@ async function enviarNota(item) {
     desenharChip();
     return;
   }
-  avisar("Nota de " + item.aluno + " guardada na planilha.");
+  avisar("Nota de " + item.aluno + " salva para o Mestrão.");
   desenharChip();
 }
 
