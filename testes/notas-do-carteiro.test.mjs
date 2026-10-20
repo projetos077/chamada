@@ -65,7 +65,7 @@ test("a nota gravada pelo celular volta na grade e na tela", () => {
 
   // Antes de qualquer nota: a aba Notas nasce com as avaliações, e ninguém tem nota.
   const antes = abrirApp(c.post({ acao: "grade" }));
-  assert.equal(antes.porId.get("aba-notas").hidden, false, "a aba Notas nasce com as avaliações");
+  assert.doesNotMatch(readFileSync(new URL("../index.html", import.meta.url), "utf8").match(/<button[^>]*id="aba-notas"[^>]*>/)[0], /hidden/, "a aba Notas nasce com as avaliações");
   antes.contexto.abrirNotaTurma(TURMA);
   antes.contexto.abrirNotaDisciplina("FISICA");
   assert.match(antes.porId.get("nota-alunos").innerHTML, /class="bt nota vazia"/);

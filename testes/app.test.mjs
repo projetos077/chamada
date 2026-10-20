@@ -181,12 +181,12 @@ const AVALIACOES = (noDiario = false) => [
 
 test("a aba Notas permanece disponível sem avaliações e mostra orientação", () => {
   const sem = abrir(gradeCom(diaFeito()));
-  assert.equal(sem.porId.get("aba-notas").hidden, false, "Notas fica sempre acessível");
+  assert.doesNotMatch(readFileSync(new URL("../index.html", import.meta.url), "utf8").match(/<button[^>]*id="aba-notas"[^>]*>/)[0], /hidden/, "Notas fica sempre acessível");
   sem.contexto.abrirNotas();
   assert.match(sem.porId.get("notas-conteudo").innerHTML, /A planilha ainda não tem avaliações/);
 
   const com = abrir(gradeCom(diaFeito(), { momento: "4" }, undefined, AVALIACOES()));
-  assert.equal(com.porId.get("aba-notas").hidden, false);
+  assert.doesNotMatch(readFileSync(new URL("../index.html", import.meta.url), "utf8").match(/<button[^>]*id="aba-notas"[^>]*>/)[0], /hidden/);
 });
 
 test("Notas · turmas: o cartão conta as avaliações a lançar", () => {
